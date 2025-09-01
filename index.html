@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pashu Doot 🐄</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      max-width: 450px;
+      width: 100%;
+      text-align: center;
+      animation: fadeIn 0.8s ease;
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #2e7d32;
+    }
+    .upload-box {
+      border: 2px dashed #81c784;
+      padding: 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .upload-box:hover {
+      background: #f1f8e9;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    button {
+      background: #43a047;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      margin-top: 15px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #2e7d32;
+    }
+    img {
+      max-width: 100%;
+      margin-top: 15px;
+      border-radius: 10px;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #1b5e20;
+    }
+    .probabilities {
+      margin-top: 10px;
+      text-align: left;
+      font-size: 14px;
+    }
+    .probabilities div {
+      margin: 4px 0;
+      background: #e8f5e9;
+      border-radius: 6px;
+      padding: 6px 10px;
+    }
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Pashu Doot 🐄</h1>
+    <label class="upload-box">
+      <span>Click to upload or capture an image</span>
+      <input type="file" id="fileInput" accept="image/*" capture="environment">
+    </label>
+    <button onclick="predict()">🔍 Identify Breed</button>
+    <div id="preview"></div>
+    <div class="result" id="result"></div>
+    <div class="probabilities" id="probs"></div>
+  </div>
+
+  <script>
+    let selectedFile = null;
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      selectedFile = e.target.files[0];
+      if (selectedFile) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          document.getElementById('preview').innerHTML =
+            `<img src="${event.target.result}" alt="preview">`;
+        }
+        reader.readAsDataURL(selectedFile);
+      }
+    });
+
+    async function predict() {
+      if (!selectedFile) {
+        alert("Please select an image first!");
+        return;
+      }
+      document.getElementById("result").innerText = "⏳ Identifying breed...";
+      document.getElementById("probs").innerHTML = "";
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      try {
+        const response = await fetch(
+          "https://shivangggg-cow-breed-classifier.hf.space/predict",
+          { method: "POST", body: formData }
+        );
+        const data = await response.json();
+
+        if (data.predictions) {
+          // Get top prediction
+          const preds = data.predictions;
+          const topClass = Object.keys(preds).reduce((a, b) => preds[a] > preds[b] ? a : b);
+          const confidence = (preds[topClass] * 100).toFixed(2);
+
+          document.getElementById("result").innerText = `✅ Breed: ${topClass} (${confidence}%)`;
+
+          // Show all probabilities
+          let html = "";
+          for (const [cls, prob] of Object.entries(preds)) {
+            html += `<div>${cls}: ${(prob * 100).toFixed(2)}%</div>`;
+          }
+          document.getElementById("probs").innerHTML = html;
+        } else {
+          document.getElementById("result").innerText = "❌ No prediction received.";
+        }
+      } catch (err) {
+        console.error(err);
+        document.getElementById("result").innerText = "⚠️ Error while predicting.";
+      }
+    }
+  </script>
+</body>
+</html>
