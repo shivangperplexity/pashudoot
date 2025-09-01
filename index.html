@@ -34,6 +34,7 @@
       border-radius: 12px;
       cursor: pointer;
       transition: background 0.3s;
+      display: block;
     }
     .upload-box:hover {
       background: #f1f8e9;
@@ -51,6 +52,7 @@
       font-size: 16px;
       cursor: pointer;
       transition: 0.3s;
+      width: 100%;
     }
     button:hover {
       background: #2e7d32;
@@ -62,20 +64,9 @@
     }
     .result {
       margin-top: 20px;
-      font-size: 18px;
+      font-size: 20px;
       font-weight: bold;
       color: #1b5e20;
-    }
-    .probabilities {
-      margin-top: 10px;
-      text-align: left;
-      font-size: 14px;
-    }
-    .probabilities div {
-      margin: 4px 0;
-      background: #e8f5e9;
-      border-radius: 6px;
-      padding: 6px 10px;
     }
     @keyframes fadeIn {
       from {opacity: 0; transform: translateY(20px);}
@@ -88,12 +79,11 @@
     <h1>Pashu Doot 🐄</h1>
     <label class="upload-box">
       <span>Click to upload or capture an image</span>
-      <input type="file" id="fileInput" accept="image/*" capture="environment">
+      <input type="file" id="fileInput" accept="image/*">
     </label>
     <button onclick="predict()">🔍 Identify Breed</button>
     <div id="preview"></div>
     <div class="result" id="result"></div>
-    <div class="probabilities" id="probs"></div>
   </div>
 
   <script>
@@ -117,7 +107,6 @@
         return;
       }
       document.getElementById("result").innerText = "⏳ Identifying breed...";
-      document.getElementById("probs").innerHTML = "";
 
       const formData = new FormData();
       formData.append("file", selectedFile);
@@ -130,19 +119,9 @@
         const data = await response.json();
 
         if (data.predictions) {
-          // Get top prediction
           const preds = data.predictions;
           const topClass = Object.keys(preds).reduce((a, b) => preds[a] > preds[b] ? a : b);
-          const confidence = (preds[topClass] * 100).toFixed(2);
-
-          document.getElementById("result").innerText = `✅ Breed: ${topClass} (${confidence}%)`;
-
-          // Show all probabilities
-          let html = "";
-          for (const [cls, prob] of Object.entries(preds)) {
-            html += `<div>${cls}: ${(prob * 100).toFixed(2)}%</div>`;
-          }
-          document.getElementById("probs").innerHTML = html;
+          document.getElementById("result").innerText = `✅ Predicted Breed: ${topClass}`;
         } else {
           document.getElementById("result").innerText = "❌ No prediction received.";
         }
