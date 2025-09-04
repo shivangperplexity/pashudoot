@@ -118,7 +118,6 @@
 
     document.getElementById("uploadForm").addEventListener("submit", async function(event) {
       event.preventDefault();
-
       const files = document.getElementById("fileInput").files;
       if (files.length === 0) return;
 
@@ -127,34 +126,36 @@
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        const div = document.createElement("div");
+        div.classList.add("result-item");
 
-        const formData = new FormData();
-        formData.append("files", file);
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(file);
+
+        const text = document.createElement("div");
+        text.classList.add("result-text");
+
+        div.appendChild(img);
+        div.appendChild(text);
+        resultsDiv.appendChild(div);
 
         try {
-          // Call YOLO Acceptance API
-          const acceptResp = await fetch("https://huggingface.co/spaces/shivangggg/class/predict", { method: "POST", body: formData });
+          // Send image to FastAPI /predict (accept/reject)
+          const formData = new FormData();
+          formData.append("files", file);
+          const acceptResp = await fetch("/predict", { method: "POST", body: formData });
           const acceptData = await acceptResp.json();
           console.log("Acceptance API response:", acceptData);
 
-          const r = acceptData[0]; // as per your FastAPI response
-
-          const div = document.createElement("div");
-          div.classList.add("result-item");
-
-          const img = document.createElement("img");
-          img.src = URL.createObjectURL(file);
-
-          const text = document.createElement("div");
-          text.classList.add("result-text");
+          const r = acceptData[0]; // response format: {filename, decision, confidence, class}
 
           if (r.decision === "accept") {
             div.classList.add("accept");
 
-            // Call Breed Classifier API
+            // Call breed classifier (FastAPI or HF endpoint)
             const breedForm = new FormData();
             breedForm.append("file", file);
-            const breedResp = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict", { method: "POST", body: breedForm });
+            const breedResp = await fetch("/breed", { method: "POST", body: breedForm }); // change to your breed API endpoint
             const data = await breedResp.json();
             console.log("Breed classifier response:", data);
 
@@ -181,34 +182,17 @@
               `;
             }
 
-            text.innerHTML = `
-              <b>${file.name}</b>
-              Decision: Accept<br>
-              Class: ${breedText}
-              <div class="breed-info">${breedDetails}</div>
-            `;
+            text.innerHTML = `<b>${file.name}</b><br>Decision: Accept<br>Class: ${breedText}<div class="breed-info">${breedDetails}</div>`;
 
           } else {
             div.classList.add("reject");
             text.innerHTML = `<b>${file.name}</b><br>No Cattle Detected 😯 We know we are smart!<br>Class: ${r.class}<br>Confidence: ${(r.confidence*100).toFixed(2)}%`;
           }
 
-          div.appendChild(img);
-          div.appendChild(text);
-          resultsDiv.appendChild(div);
-
         } catch(err) {
           console.error(err);
-          const div = document.createElement("div");
-          div.classList.add("result-item", "reject");
-          const img = document.createElement("img");
-          img.src = URL.createObjectURL(file);
-          const text = document.createElement("div");
-          text.classList.add("result-text");
+          div.classList.add("reject");
           text.innerHTML = `<b>${file.name}</b><br>Error: Could not analyze.<br>${err}`;
-          div.appendChild(img);
-          div.appendChild(text);
-          resultsDiv.appendChild(div);
         }
       }
     });
