@@ -6,37 +6,158 @@
 <title>Cattle Breed Identifier</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-body { min-height: 100vh; background: linear-gradient(135deg, #fde2e4, #e2f0cb, #cddafd); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; font-family: 'Inter', sans-serif; margin: 0; }
-h1 { font-size: 2rem; margin-bottom: 20px; font-weight: 700; color: #6a1b9a; animation: fadeInDown 0.8s ease-out; text-align: center; }
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fde2e4, #e2f0cb, #cddafd);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+}
 
-.upload-container { cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 90%; max-width: 340px; height: 200px; background: rgba(255,255,255,0.6); border: 2px dashed #6a1b9a; border-radius: 16px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
-.upload-container:hover { transform: scale(1.03); box-shadow: 0 8px 16px rgba(106,27,154,0.3); }
-.upload-icon { width: 40px; height: 40px; margin-bottom: 8px; animation: pulse 1.5s infinite ease-in-out; stroke: #6a1b9a; }
-.upload-text { color: #333; font-size: 1rem; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  font-weight: 700;
+  color: #6a1b9a;
+  animation: fadeInDown 0.8s ease-out;
+  text-align: center;
+}
+
+.upload-container {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 90%;
+  max-width: 340px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 2px dashed #6a1b9a;
+  border-radius: 16px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.upload-container:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 16px rgba(106, 27, 154, 0.3);
+}
+
+.upload-icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 8px;
+  animation: pulse 1.5s infinite ease-in-out;
+  stroke: #6a1b9a;
+}
+
+.upload-text {
+  color: #333;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 input[type="file"] { display: none; }
 
-.overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(4px); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; padding: 20px; }
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  text-align: center;
+  padding: 20px;
+}
+
 .overlay.visible { display: flex; }
 .overlay img { transform: scale(2); margin-bottom: 20px; animation: float 2s ease-in-out infinite; }
-.progress-texts { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 15px; }
-.progress-texts p { font-size: 1.1rem; font-weight: 600; opacity: 0.4; transition: all 0.5s ease; color: #444; }
-.progress-texts p.active { opacity: 1; color: #6a1b9a; font-size: 1.2rem; }
-.progress-bar { width: 80%; max-width: 320px; height: 8px; background: #ddd; border-radius: 6px; overflow: hidden; }
-.progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #6a1b9a, #d81b60, #0288d1); border-radius: 6px; transition: width 0.8s ease; }
 
-.result { margin-top: 20px; max-width: 400px; width: 100%; background: #fff; padding: 0; border-radius: 16px; box-shadow: 0 6px 16px rgba(106,27,154,0.25); opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; overflow: hidden; }
+.progress-texts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.progress-texts p {
+  font-size: 1.1rem;
+  font-weight: 600;
+  opacity: 0.4;
+  transition: all 0.5s ease;
+  color: #444;
+}
+
+.progress-texts p.active {
+  opacity: 1;
+  color: #6a1b9a;
+  font-size: 1.2rem;
+}
+
+.progress-bar {
+  width: 80%;
+  max-width: 320px;
+  height: 8px;
+  background: #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #6a1b9a, #d81b60, #0288d1);
+  border-radius: 6px;
+  transition: width 0.8s ease;
+}
+
+.result {
+  margin-top: 20px;
+  max-width: 400px;
+  width: 100%;
+  background: #fff;
+  padding: 0;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(106, 27, 154, 0.25);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  overflow: hidden;
+}
+
 .result.visible { opacity: 1; transform: translateY(0); }
-.result-header { background: linear-gradient(135deg, #6a1b9a, #d81b60); padding: 12px; text-align: center; color: #fff; font-weight: 700; font-size: 1.4rem; }
-.result-body { padding: 16px 20px; }
-.result-body p { font-size: 1rem; margin: 10px 0; font-weight: 500; color: #333; }
-.result-body strong { color: #6a1b9a; font-weight: 700; }
 
-.result-gallery { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-.result-item { display: flex; flex-direction: column; align-items: center; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 120px; background: #fff; }
-.result-item img { width: 100%; height: 100px; object-fit: cover; }
-.result-text { font-size: 0.8rem; text-align: center; padding: 5px; }
-.result-item.accept { border: 2px solid #4caf50; }
-.result-item.reject { border: 2px solid #f44336; }
+.result-header {
+  background: linear-gradient(135deg, #6a1b9a, #d81b60);
+  padding: 12px;
+  text-align: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.result-body {
+  padding: 16px 20px;
+}
+
+.result-body p {
+  font-size: 1rem;
+  margin: 10px 0;
+  font-weight: 500;
+  color: #333;
+}
+
+.result-body strong {
+  color: #6a1b9a;
+  font-weight: 700;
+}
 
 @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px);} to {opacity: 1; transform: translateY(0);} }
 @keyframes pulse { 0%,100% { transform: scale(1);} 50% { transform: scale(1.1);} }
@@ -47,15 +168,13 @@ input[type="file"] { display: none; }
 
 <h1>Cattle Breed Identifier</h1>
 
-<form id="uploadForm">
-  <label class="upload-container">
-    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
-      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-    </svg>
-    <span class="upload-text">Upload Image</span>
-    <input type="file" id="fileInput" name="files" accept="image/*" multiple>
-  </label>
-</form>
+<label class="upload-container">
+  <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+  </svg>
+  <span class="upload-text">Upload Image</span>
+  <input type="file" id="imageUpload" accept="image/*">
+</label>
 
 <div id="overlay" class="overlay">
   <img src="analyze.gif" alt="Loading...">
@@ -80,8 +199,6 @@ input[type="file"] { display: none; }
   </div>
 </div>
 
-<div id="results" class="result-gallery"></div>
-
 <script>
 const overlay = document.getElementById("overlay");
 const steps = [
@@ -99,7 +216,6 @@ const lifespan = document.getElementById("lifespan");
 const milkYield = document.getElementById("milkYield");
 const description = document.getElementById("description");
 
-const resultGallery = document.getElementById("results");
 const CONFIDENCE_THRESHOLD = 0.5;
 
 const breedInfo = {
@@ -112,65 +228,54 @@ const breedInfo = {
 };
 
 function showStep(index){ steps.forEach((s,i)=>s.classList.toggle("active", i===index)); progressFill.style.width=`${((index+1)/steps.length)*100}%`; }
-async function runProgress(){ for(let i=0;i<steps.length;i++){ showStep(i); await new Promise(r=>setTimeout(r,800)); } }
+async function runProgress(){ for(let i=0;i<steps.length;i++){ showStep(i); await new Promise(r=>setTimeout(r,1000)); } }
 
-document.getElementById("uploadForm").addEventListener("submit", async function(event){
-  event.preventDefault();
-  const files = document.getElementById("fileInput").files;
-  if(files.length===0) return;
+document.getElementById("imageUpload").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+
   overlay.classList.add("visible");
   runProgress();
-  resultGallery.innerHTML = "";
+
   try {
     const formData = new FormData();
-    for(let i=0;i<files.length;i++) formData.append("files", files[i]);
+    formData.append("files", file);
 
     // Acceptance API
     const acceptResp = await fetch("https://huggingface.co/spaces/shivangggg/class/predict",{method:"POST",body:formData});
     if(!acceptResp.ok) throw new Error("Acceptance API failed");
     const acceptData = await acceptResp.json();
+    const r = acceptData[0];
 
-    for(let i=0;i<files.length;i++){
-      const r = acceptData[i];
-      const div = document.createElement("div");
-      div.classList.add("result-item");
-      div.classList.add(r.decision==="accept"?"accept":"reject");
-      const img = document.createElement("img");
-      img.src = URL.createObjectURL(files[i]);
-      const text = document.createElement("div");
-      text.classList.add("result-text");
-      text.innerHTML = `<b>${r.filename}</b><br>Class: ${r.class}<br>Decision: ${r.decision}<br>Confidence: ${(r.confidence*100).toFixed(2)}%`;
-      div.appendChild(img); div.appendChild(text);
-      resultGallery.appendChild(div);
+    if(r.decision==="accept"){
+      // Breed classifier API
+      const breedForm = new FormData();
+      breedForm.append("file", file);
+      const breedResp = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict",{method:"POST",body:breedForm});
+      const data = await breedResp.json();
+      let topClass=null, confidence=0;
+      if(data.predictions){ const preds=data.predictions; topClass=Object.keys(preds).reduce((a,b)=>preds[a]>preds[b]?a:b); confidence=preds[topClass]||0; }
 
-      if(r.decision==="accept"){
-        // Breed classifier
-        const breedForm = new FormData(); breedForm.append("file", files[i]);
-        const breedResp = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict",{method:"POST",body:breedForm});
-        if(!breedResp.ok) continue;
-        const data = await breedResp.json();
-        let topClass=null, confidence=0;
-        if(data.predictions){ const preds=data.predictions; topClass=Object.keys(preds).reduce((a,b)=>preds[a]>preds[b]?a:b); confidence=preds[topClass]||0; }
-        if(confidence>=CONFIDENCE_THRESHOLD){
-          const key=topClass.toLowerCase();
-          const info=breedInfo[key]||{origin:"-",lifespan:"-",milkYield:"-",description:"No info available"};
-          breedText.textContent=`Identified Breed: ${key.charAt(0).toUpperCase()+key.slice(1)} (${(confidence*100).toFixed(1)}%)`;
-          origin.innerHTML=`Origin: <strong>${info.origin}</strong>`;
-          lifespan.innerHTML=`Lifespan: <strong>${info.lifespan}</strong>`;
-          milkYield.innerHTML=`Milk Yield: <strong>${info.milkYield}</strong>`;
-          description.textContent=`About: ${info.description}`;
-        } else {
-          breedText.textContent=`Breed not confidently identified (Confidence: ${(confidence*100).toFixed(1)}%)`;
-        }
+      if(confidence>=CONFIDENCE_THRESHOLD){
+        const key = topClass.toLowerCase();
+        const info = breedInfo[key]||{origin:"-",lifespan:"-",milkYield:"-",description:"No info available"};
+        breedText.textContent = `Identified Breed: ${key.charAt(0).toUpperCase()+key.slice(1)} (${(confidence*100).toFixed(1)}%)`;
+        origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
+        lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
+        milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
+        description.textContent = `About: ${info.description}`;
       } else {
-        breedText.textContent="No Cattle Detected 😯 We know we are smart!";
-        origin.textContent=""; lifespan.textContent=""; milkYield.textContent=""; description.textContent="";
+        breedText.textContent = `Breed not confidently identified (Confidence: ${(confidence*100).toFixed(1)}%)`;
       }
+    } else {
+      breedText.textContent="No Cattle Detected 😯 We know we are smart!";
+      origin.textContent=""; lifespan.textContent=""; milkYield.textContent=""; description.textContent="";
     }
 
   } catch(err){ console.error(err); breedText.textContent="Error: Could not analyze."; }
   finally{ setTimeout(()=>{ overlay.classList.remove("visible"); result.classList.add("visible"); },500); }
 });
 </script>
+
 </body>
 </html>
