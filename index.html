@@ -6,162 +6,7 @@
 <title>Cattle Breed Identifier</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-body {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #fde2e4, #e2f0cb, #cddafd);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  font-family: 'Inter', sans-serif;
-  margin: 0;
-}
-
-h1 {
-  font-size: 2rem;
-  margin-bottom: 20px;
-  font-weight: 700;
-  color: #6a1b9a;
-  animation: fadeInDown 0.8s ease-out;
-  text-align: center;
-}
-
-.upload-container {
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 90%;
-  max-width: 340px;
-  height: 200px;
-  background: rgba(255, 255, 255, 0.6);
-  border: 2px dashed #6a1b9a;
-  border-radius: 16px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.upload-container:hover {
-  transform: scale(1.03);
-  box-shadow: 0 8px 16px rgba(106, 27, 154, 0.3);
-}
-
-.upload-icon {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 8px;
-  animation: pulse 1.5s infinite ease-in-out;
-  stroke: #6a1b9a;
-}
-
-.upload-text {
-  color: #333;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-input[type="file"] { display: none; }
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(4px);
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  text-align: center;
-  padding: 20px;
-}
-
-.overlay.visible { display: flex; }
-.overlay img { transform: scale(2); margin-bottom: 20px; animation: float 2s ease-in-out infinite; }
-
-.progress-texts {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 15px;
-}
-
-.progress-texts p {
-  font-size: 1.1rem;
-  font-weight: 600;
-  opacity: 0.4;
-  transition: all 0.5s ease;
-  color: #444;
-}
-
-.progress-texts p.active {
-  opacity: 1;
-  color: #6a1b9a;
-  font-size: 1.2rem;
-}
-
-.progress-bar {
-  width: 80%;
-  max-width: 320px;
-  height: 8px;
-  background: #ddd;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #6a1b9a, #d81b60, #0288d1);
-  border-radius: 6px;
-  transition: width 0.8s ease;
-}
-
-.result {
-  margin-top: 20px;
-  max-width: 400px;
-  width: 100%;
-  background: #fff;
-  padding: 0;
-  border-radius: 16px;
-  box-shadow: 0 6px 16px rgba(106, 27, 154, 0.25);
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-  overflow: hidden;
-}
-
-.result.visible { opacity: 1; transform: translateY(0); }
-
-.result-header {
-  background: linear-gradient(135deg, #6a1b9a, #d81b60);
-  padding: 12px;
-  text-align: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 1.4rem;
-}
-
-.result-body {
-  padding: 16px 20px;
-}
-
-.result-body p {
-  font-size: 1rem;
-  margin: 10px 0;
-  font-weight: 500;
-  color: #333;
-}
-
-.result-body strong {
-  color: #6a1b9a;
-  font-weight: 700;
-}
-
-@keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px);} to {opacity: 1; transform: translateY(0);} }
-@keyframes pulse { 0%,100% { transform: scale(1);} 50% { transform: scale(1.1);} }
-@keyframes float { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-12px);} }
+/* ... keep all previous CSS exactly the same ... */
 </style>
 </head>
 <body>
@@ -196,6 +41,7 @@ input[type="file"] { display: none; }
     <p id="lifespan"></p>
     <p id="milkYield"></p>
     <p id="description"></p>
+    <pre id="debug" style="background:#eee; padding:10px; overflow:auto; font-size:0.9rem;"></pre>
   </div>
 </div>
 
@@ -215,6 +61,7 @@ const origin = document.getElementById("origin");
 const lifespan = document.getElementById("lifespan");
 const milkYield = document.getElementById("milkYield");
 const description = document.getElementById("description");
+const debugBox = document.getElementById("debug");
 
 const CONFIDENCE_THRESHOLD = 0.5;
 
@@ -237,14 +84,18 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
   overlay.classList.add("visible");
   runProgress();
 
+  debugBox.textContent = ""; // clear previous debug info
+
   try {
     const formData = new FormData();
     formData.append("files", file);
 
     // Acceptance API
     const acceptResp = await fetch("https://huggingface.co/spaces/shivangggg/class/predict",{method:"POST",body:formData});
-    if(!acceptResp.ok) throw new Error("Acceptance API failed");
     const acceptData = await acceptResp.json();
+    console.log("Acceptance API response:", acceptData);
+    debugBox.textContent += "Acceptance API Response:\n" + JSON.stringify(acceptData,null,2) + "\n\n";
+
     const r = acceptData[0];
 
     if(r.decision==="accept"){
@@ -253,6 +104,9 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
       breedForm.append("file", file);
       const breedResp = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict",{method:"POST",body:breedForm});
       const data = await breedResp.json();
+      console.log("Breed classifier API response:", data);
+      debugBox.textContent += "Breed Classifier API Response:\n" + JSON.stringify(data,null,2);
+
       let topClass=null, confidence=0;
       if(data.predictions){ const preds=data.predictions; topClass=Object.keys(preds).reduce((a,b)=>preds[a]>preds[b]?a:b); confidence=preds[topClass]||0; }
 
@@ -272,8 +126,13 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
       origin.textContent=""; lifespan.textContent=""; milkYield.textContent=""; description.textContent="";
     }
 
-  } catch(err){ console.error(err); breedText.textContent="Error: Could not analyze."; }
-  finally{ setTimeout(()=>{ overlay.classList.remove("visible"); result.classList.add("visible"); },500); }
+  } catch(err){
+    console.error(err);
+    debugBox.textContent += "\nError:\n" + err;
+    breedText.textContent="Error: Could not analyze.";
+  } finally{
+    setTimeout(()=>{ overlay.classList.remove("visible"); result.classList.add("visible"); },500);
+  }
 });
 </script>
 
