@@ -162,7 +162,7 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
 
   try {
     const formData = new FormData();
-    formData.append("files", file);
+    formData.append("file", file);  // ✅ FIXED
 
     // STEP 1: Detection API
     const detectResponse = await fetch("https://shivangggg-class.hf.space/predict", { 
@@ -178,13 +178,11 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
     try { detectData = JSON.parse(detectText); } 
     catch(err){ console.error("JSON parse error:", err); }
 
-    if(detectData && detectData.length > 0){
-      const top = detectData[0];
-
-      if(top.decision === "accept"){
+    if(detectData && detectData.class){
+      if(detectData.class === "accepted"){   // ✅ match your backend response
         // STEP 2: Breed Classification
         const breedForm = new FormData();
-        breedForm.append("files", file);
+        breedForm.append("file", file);  // ✅ FIXED
 
         const breedResponse = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict", { 
           method: "POST", 
@@ -199,13 +197,12 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
         try { breedData = JSON.parse(breedTextRaw); } 
         catch(err){ console.error("JSON parse error:", err); }
 
-        if(breedData && breedData.length > 0){
-          const breedTop = breedData[0];
-          const key = breedTop.class.toLowerCase();
+        if(breedData && breedData.class){
+          const key = breedData.class.toLowerCase();
           const formattedBreed = key.charAt(0).toUpperCase() + key.slice(1);
           const info = breedInfo[key] || {origin:"-", lifespan:"-", milkYield:"-", description:"No info available"};
 
-          breedText.textContent = `Identified Breed: ${formattedBreed} (${(breedTop.confidence*100).toFixed(1)}%)`;
+          breedText.textContent = `Identified Breed: ${formattedBreed} (${(breedData.confidence*100).toFixed(1)}%)`;
           origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
           lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
           milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
@@ -228,5 +225,6 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
   }
 });
 </script>
+
 </body>
 </html>
