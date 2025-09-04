@@ -1,140 +1,217 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cattle Breed Identifier</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-/* ... keep all previous CSS exactly the same ... */
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cattle Breed Identifier</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #fde2e4, #e2f0cb, #cddafd);
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      width: 100%;
+      max-width: 700px;
+      text-align: center;
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #6a1b9a;
+      font-size: 24px;
+    }
+    input[type="file"] {
+      display: block;
+      margin: 20px auto;
+      padding: 8px;
+      border: 2px dashed #6a1b9a;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #fafafa;
+    }
+    button {
+      background: #6a1b9a;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #d81b60;
+    }
+    .results {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+    .result-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border-radius: 12px;
+      color: #fff;
+    }
+    .result-item img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-right: 15px;
+      border: 2px solid rgba(255,255,255,0.6);
+    }
+    .accept {
+      background: linear-gradient(135deg, #4CAF50, #66bb6a);
+    }
+    .reject {
+      background: linear-gradient(135deg, #e53935, #ef5350);
+    }
+    .result-text {
+      text-align: left;
+    }
+    .result-text b {
+      font-size: 16px;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .breed-info {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #fff;
+    }
+  </style>
 </head>
 <body>
-
-<h1>Cattle Breed Identifier</h1>
-
-<label class="upload-container">
-  <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
-    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-  </svg>
-  <span class="upload-text">Upload Image</span>
-  <input type="file" id="imageUpload" accept="image/*">
-</label>
-
-<div id="overlay" class="overlay">
-  <img src="analyze.gif" alt="Loading...">
-  <div class="progress-texts">
-    <p id="step1">Uploading Image...</p>
-    <p id="step2">Checking Cattle...</p>
-    <p id="step3">Analyzing Breed...</p>
-    <p id="step4">Fetching Results...</p>
+  <div class="container">
+    <h2>Cattle Breed Identifier</h2>
+    <form id="uploadForm">
+      <input type="file" id="fileInput" name="files" accept="image/*" multiple required>
+      <button type="submit">Predict</button>
+    </form>
+    <div class="results" id="results"></div>
   </div>
-  <div class="progress-bar">
-    <div id="progressFill" class="progress-fill"></div>
-  </div>
-</div>
 
-<div id="result" class="result">
-  <div id="breed" class="result-header"></div>
-  <div class="result-body">
-    <p id="origin"></p>
-    <p id="lifespan"></p>
-    <p id="milkYield"></p>
-    <p id="description"></p>
-    <pre id="debug" style="background:#eee; padding:10px; overflow:auto; font-size:0.9rem;"></pre>
-  </div>
-</div>
+  <script>
+    const breedInfo = {
+      "hallikar": {origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 liters/day", description:"Known for strength and draught ability."},
+      "deoni": {origin:"Maharashtra, Karnataka, Andhra Pradesh", lifespan:"12-15 years", milkYield:"3-8 liters/day", description:"Dual-purpose breed with good resistance."},
+      "gir": {origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 liters/day", description:"Famous for high-quality A2 milk."},
+      "jersey": {origin:"Jersey Island, UK", lifespan:"18-22 years", milkYield:"12-20 liters/day", description:"Popular dairy breed producing rich milk."},
+      "red sindhi": {origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 liters/day", description:"Good yield and adaptability."},
+      "sahiwal": {origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 liters/day", description:"Heat-tolerant and productive."}
+    };
 
-<script>
-const overlay = document.getElementById("overlay");
-const steps = [
-  document.getElementById("step1"),
-  document.getElementById("step2"),
-  document.getElementById("step3"),
-  document.getElementById("step4")
-];
-const progressFill = document.getElementById("progressFill");
+    const CONFIDENCE_THRESHOLD = 0.5;
 
-const result = document.getElementById("result");
-const breedText = document.getElementById("breed");
-const origin = document.getElementById("origin");
-const lifespan = document.getElementById("lifespan");
-const milkYield = document.getElementById("milkYield");
-const description = document.getElementById("description");
-const debugBox = document.getElementById("debug");
+    document.getElementById("uploadForm").addEventListener("submit", async function(event) {
+      event.preventDefault();
 
-const CONFIDENCE_THRESHOLD = 0.5;
+      const files = document.getElementById("fileInput").files;
+      if (files.length === 0) return;
 
-const breedInfo = {
-  "hallikar": {origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 liters/day", description:"Known for strength and draught ability."},
-  "deoni": {origin:"Maharashtra, Karnataka, Andhra Pradesh", lifespan:"12-15 years", milkYield:"3-8 liters/day", description:"Dual-purpose breed with good resistance."},
-  "gir": {origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 liters/day", description:"Famous for high-quality A2 milk."},
-  "jersey": {origin:"Jersey Island, UK", lifespan:"18-22 years", milkYield:"12-20 liters/day", description:"Popular dairy breed producing rich milk."},
-  "red sindhi": {origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 liters/day", description:"Good yield and adaptability."},
-  "sahiwal": {origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 liters/day", description:"Heat-tolerant and productive."}
-};
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "";
 
-function showStep(index){ steps.forEach((s,i)=>s.classList.toggle("active", i===index)); progressFill.style.width=`${((index+1)/steps.length)*100}%`; }
-async function runProgress(){ for(let i=0;i<steps.length;i++){ showStep(i); await new Promise(r=>setTimeout(r,1000)); } }
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
 
-document.getElementById("imageUpload").addEventListener("change", async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
+        const formData = new FormData();
+        formData.append("files", file);
 
-  overlay.classList.add("visible");
-  runProgress();
+        try {
+          // Call YOLO Acceptance API
+          const acceptResp = await fetch("https://huggingface.co/spaces/shivangggg/class/predict", { method: "POST", body: formData });
+          const acceptData = await acceptResp.json();
+          console.log("Acceptance API response:", acceptData);
 
-  debugBox.textContent = ""; // clear previous debug info
+          const r = acceptData[0]; // as per your FastAPI response
 
-  try {
-    const formData = new FormData();
-    formData.append("files", file);
+          const div = document.createElement("div");
+          div.classList.add("result-item");
 
-    // Acceptance API
-    const acceptResp = await fetch("https://huggingface.co/spaces/shivangggg/class/predict",{method:"POST",body:formData});
-    const acceptData = await acceptResp.json();
-    console.log("Acceptance API response:", acceptData);
-    debugBox.textContent += "Acceptance API Response:\n" + JSON.stringify(acceptData,null,2) + "\n\n";
+          const img = document.createElement("img");
+          img.src = URL.createObjectURL(file);
 
-    const r = acceptData[0];
+          const text = document.createElement("div");
+          text.classList.add("result-text");
 
-    if(r.decision==="accept"){
-      // Breed classifier API
-      const breedForm = new FormData();
-      breedForm.append("file", file);
-      const breedResp = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict",{method:"POST",body:breedForm});
-      const data = await breedResp.json();
-      console.log("Breed classifier API response:", data);
-      debugBox.textContent += "Breed Classifier API Response:\n" + JSON.stringify(data,null,2);
+          if (r.decision === "accept") {
+            div.classList.add("accept");
 
-      let topClass=null, confidence=0;
-      if(data.predictions){ const preds=data.predictions; topClass=Object.keys(preds).reduce((a,b)=>preds[a]>preds[b]?a:b); confidence=preds[topClass]||0; }
+            // Call Breed Classifier API
+            const breedForm = new FormData();
+            breedForm.append("file", file);
+            const breedResp = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict", { method: "POST", body: breedForm });
+            const data = await breedResp.json();
+            console.log("Breed classifier response:", data);
 
-      if(confidence>=CONFIDENCE_THRESHOLD){
-        const key = topClass.toLowerCase();
-        const info = breedInfo[key]||{origin:"-",lifespan:"-",milkYield:"-",description:"No info available"};
-        breedText.textContent = `Identified Breed: ${key.charAt(0).toUpperCase()+key.slice(1)} (${(confidence*100).toFixed(1)}%)`;
-        origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
-        lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
-        milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
-        description.textContent = `About: ${info.description}`;
-      } else {
-        breedText.textContent = `Breed not confidently identified (Confidence: ${(confidence*100).toFixed(1)}%)`;
+            let topClass = null;
+            let confidence = 0;
+
+            if (data.predictions) {
+              const preds = data.predictions;
+              topClass = Object.keys(preds).reduce((a,b)=>preds[a]>preds[b]?a:b);
+              confidence = preds[topClass] || 0;
+            }
+
+            let breedText = "Breed not confidently identified";
+            let breedDetails = "";
+            if (confidence >= CONFIDENCE_THRESHOLD) {
+              const key = topClass.toLowerCase();
+              const info = breedInfo[key] || {origin:"-", lifespan:"-", milkYield:"-", description:"No info"};
+              breedText = key.charAt(0).toUpperCase() + key.slice(1) + ` (${(confidence*100).toFixed(1)}%)`;
+              breedDetails = `
+                Origin: ${info.origin} | 
+                Lifespan: ${info.lifespan} | 
+                Milk Yield: ${info.milkYield} | 
+                About: ${info.description}
+              `;
+            }
+
+            text.innerHTML = `
+              <b>${file.name}</b>
+              Decision: Accept<br>
+              Class: ${breedText}
+              <div class="breed-info">${breedDetails}</div>
+            `;
+
+          } else {
+            div.classList.add("reject");
+            text.innerHTML = `<b>${file.name}</b><br>No Cattle Detected 😯 We know we are smart!<br>Class: ${r.class}<br>Confidence: ${(r.confidence*100).toFixed(2)}%`;
+          }
+
+          div.appendChild(img);
+          div.appendChild(text);
+          resultsDiv.appendChild(div);
+
+        } catch(err) {
+          console.error(err);
+          const div = document.createElement("div");
+          div.classList.add("result-item", "reject");
+          const img = document.createElement("img");
+          img.src = URL.createObjectURL(file);
+          const text = document.createElement("div");
+          text.classList.add("result-text");
+          text.innerHTML = `<b>${file.name}</b><br>Error: Could not analyze.<br>${err}`;
+          div.appendChild(img);
+          div.appendChild(text);
+          resultsDiv.appendChild(div);
+        }
       }
-    } else {
-      breedText.textContent="No Cattle Detected 😯 We know we are smart!";
-      origin.textContent=""; lifespan.textContent=""; milkYield.textContent=""; description.textContent="";
-    }
-
-  } catch(err){
-    console.error(err);
-    debugBox.textContent += "\nError:\n" + err;
-    breedText.textContent="Error: Could not analyze.";
-  } finally{
-    setTimeout(()=>{ overlay.classList.remove("visible"); result.classList.add("visible"); },500);
-  }
-});
-</script>
-
+    });
+  </script>
 </body>
 </html>
