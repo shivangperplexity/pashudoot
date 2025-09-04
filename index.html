@@ -211,88 +211,102 @@
   </div>
 
   <script>
-    const overlay = document.getElementById("overlay");
-    const steps = [
-      document.getElementById("step1"),
-      document.getElementById("step2"),
-      document.getElementById("step3"),
-      document.getElementById("step4")
-    ];
-    const progressFill = document.getElementById("progressFill");
+  const overlay = document.getElementById("overlay");
+  const steps = [
+    document.getElementById("step1"),
+    document.getElementById("step2"),
+    document.getElementById("step3"),
+    document.getElementById("step4")
+  ];
+  const progressFill = document.getElementById("progressFill");
 
-    const result = document.getElementById("result");
-    const breedText = document.getElementById("breed");
-    const origin = document.getElementById("origin");
-    const lifespan = document.getElementById("lifespan");
-    const milkYield = document.getElementById("milkYield");
-    const description = document.getElementById("description");
+  const result = document.getElementById("result");
+  const breedText = document.getElementById("breed");
+  const origin = document.getElementById("origin");
+  const lifespan = document.getElementById("lifespan");
+  const milkYield = document.getElementById("milkYield");
+  const description = document.getElementById("description");
 
-    const breedInfo = {
-      "hallikar": {origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 liters/day", description:"Known for strength and draught ability."},
-      "deoni": {origin:"Maharashtra, Karnataka, Andhra Pradesh", lifespan:"12-15 years", milkYield:"3-8 liters/day", description:"Dual-purpose breed with good resistance."},
-      "gir": {origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 liters/day", description:"Famous for high-quality A2 milk."},
-      "jersey": {origin:"Jersey Island, UK", lifespan:"18-22 years", milkYield:"12-20 liters/day", description:"Popular dairy breed producing rich milk."},
-      "red sindhi": {origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 liters/day", description:"Good yield and adaptability."},
-      "sahiwal": {origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 liters/day", description:"Heat-tolerant and productive."}
-    };
+  const CONFIDENCE_THRESHOLD = 0.5; // 50%
 
-    function showStep(index) {
-      steps.forEach((s, i) => s.classList.toggle("active", i === index));
-      progressFill.style.width = `${((index+1)/steps.length)*100}%`;
+  const breedInfo = {
+    "hallikar": {origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 liters/day", description:"Known for strength and draught ability."},
+    "deoni": {origin:"Maharashtra, Karnataka, Andhra Pradesh", lifespan:"12-15 years", milkYield:"3-8 liters/day", description:"Dual-purpose breed with good resistance."},
+    "gir": {origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 liters/day", description:"Famous for high-quality A2 milk."},
+    "jersey": {origin:"Jersey Island, UK", lifespan:"18-22 years", milkYield:"12-20 liters/day", description:"Popular dairy breed producing rich milk."},
+    "red sindhi": {origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 liters/day", description:"Good yield and adaptability."},
+    "sahiwal": {origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 liters/day", description:"Heat-tolerant and productive."}
+  };
+
+  function showStep(index) {
+    steps.forEach((s, i) => s.classList.toggle("active", i === index));
+    progressFill.style.width = `${((index+1)/steps.length)*100}%`;
+  }
+
+  async function runProgress() {
+    for (let i = 0; i < steps.length; i++) {
+      showStep(i);
+      await new Promise(r => setTimeout(r, 1200));
     }
+  }
 
-    async function runProgress() {
-      for (let i = 0; i < steps.length; i++) {
-        showStep(i);
-        await new Promise(r => setTimeout(r, 1200)); // delay for visibility
+  document.getElementById("imageUpload").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    overlay.classList.add("visible");
+    runProgress();
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict", {
+        method: "POST",
+        body: formData
+      });
+
+      if (!response.ok) throw new Error("API request failed");
+      const data = await response.json();
+
+      let topClass = null;
+      let confidence = 0;
+
+      if (data.predictions) {
+        const preds = data.predictions;
+        topClass = Object.keys(preds).reduce((a, b) => preds[a] > preds[b] ? a : b);
+        confidence = preds[topClass] || 0;
       }
-    }
 
-    document.getElementById("imageUpload").addEventListener("change", async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      overlay.classList.add("visible");
-      runProgress(); // run animation while API works
-
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict", {
-          method: "POST",
-          body: formData
-        });
-
-        if (!response.ok) throw new Error("API request failed");
-        const data = await response.json();
-
-        let topClass = null;
-        if (data.predictions) {
-          const preds = data.predictions;
-          topClass = Object.keys(preds).reduce((a, b) => preds[a] > preds[b] ? a : b);
-        }
-
-        const key = topClass ? topClass.toLowerCase() : "unknown";
+      if (confidence >= CONFIDENCE_THRESHOLD) {
+        const key = topClass.toLowerCase();
         const formattedBreed = key.charAt(0).toUpperCase() + key.slice(1);
         const info = breedInfo[key] || {origin:"-", lifespan:"-", milkYield:"-", description:"No info available for this breed."};
 
-        breedText.textContent = `Identified Breed: ${formattedBreed}`;
+        breedText.textContent = `Identified Breed: ${formattedBreed} (${(confidence*100).toFixed(1)}%)`;
         origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
         lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
         milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
         description.textContent = `About: ${info.description}`;
-
-      } catch (error) {
-        console.error("Error:", error);
-        breedText.textContent = "Error: Could not analyze.";
-      } finally {
-        setTimeout(() => {
-          overlay.classList.remove("visible");
-          result.classList.add("visible");
-        }, 500);
+      } else {
+        breedText.textContent = `Breed not confidently identified (Confidence: ${(confidence*100).toFixed(1)}%)`;
+        origin.textContent = "";
+        lifespan.textContent = "";
+        milkYield.textContent = "";
+        description.textContent = "";
       }
-    });
-  </script>
+
+    } catch (error) {
+      console.error("Error:", error);
+      breedText.textContent = "Error: Could not analyze.";
+    } finally {
+      setTimeout(() => {
+        overlay.classList.remove("visible");
+        result.classList.add("visible");
+      }, 500);
+    }
+  });
+</script>
+
 </body>
 </html>
