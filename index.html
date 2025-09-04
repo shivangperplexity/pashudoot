@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cattle Breed Identifier</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"> 
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body {
       min-height: 100vh;
@@ -68,6 +68,7 @@
     .result-body p { font-size: 1rem; margin: 10px 0; font-weight: 500; color: #333; }
     .result-body strong { color: #6a1b9a; font-weight: 700; }
 
+    /* Debug JSON */
     .debug { margin-top: 20px; max-width: 500px; width: 100%; background: #222; color: #0f0; font-size: 0.85rem; padding: 12px; border-radius: 12px; white-space: pre-wrap; overflow-x: auto; font-family: monospace; display: none; }
     .debug.visible { display: block; }
   </style>
@@ -98,18 +99,31 @@
 
   <div id="result" class="result">
     <div id="breed" class="result-header"></div>
-    <div class="result-body" id="resultBody"></div>
+    <div class="result-body">
+      <p id="origin"></p>
+      <p id="lifespan"></p>
+      <p id="milkYield"></p>
+      <p id="description"></p>
+    </div>
   </div>
 
   <div id="debug" class="debug"></div>
 
 <script>
 const overlay = document.getElementById("overlay");
-const steps = [document.getElementById("step1"), document.getElementById("step2"), document.getElementById("step3"), document.getElementById("step4")];
+const steps = [
+  document.getElementById("step1"),
+  document.getElementById("step2"),
+  document.getElementById("step3"),
+  document.getElementById("step4")
+];
 const progressFill = document.getElementById("progressFill");
 const result = document.getElementById("result");
 const breedText = document.getElementById("breed");
-const resultBody = document.getElementById("resultBody");
+const origin = document.getElementById("origin");
+const lifespan = document.getElementById("lifespan");
+const milkYield = document.getElementById("milkYield");
+const description = document.getElementById("description");
 const debugBox = document.getElementById("debug");
 
 const breedInfo = {
@@ -129,13 +143,13 @@ function showStep(index) {
 async function runProgress() {
   for(let i=0;i<steps.length;i++){
     showStep(i);
-    await new Promise(r=>setTimeout(r,1000));
+    await new Promise(r=>setTimeout(r,1200));
   }
 }
 
-function showDebug(label, data) {
+function showDebug(label, jsonData) {
   debugBox.classList.add("visible");
-  debugBox.textContent += `\n=== ${label} ===\n${typeof data === "string" ? data : JSON.stringify(data,null,2)}\n`;
+  debugBox.textContent += `\n=== ${label} ===\n${JSON.stringify(jsonData, null, 2)}\n`;
 }
 
 document.getElementById("imageUpload").addEventListener("change", async (e)=>{
@@ -144,63 +158,65 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
 
   overlay.classList.add("visible");
   runProgress();
-  debugBox.textContent = ""; 
+  debugBox.textContent = ""; // clear old debug
 
   try {
     // STEP 1: Detection API
-    const detectForm = new FormData();
-    detectForm.append("files", file);   // detection expects "files"
+    const formData = new FormData();
+    formData.append("files", file);
 
     const detectResponse = await fetch("https://shivangggg-class.hf.space/predict", { 
       method: "POST", 
-      body: detectForm 
+      body: formData 
     });
 
     const detectData = await detectResponse.json();
     showDebug("Detection API Response", detectData);
 
-    if(Array.isArray(detectData) && detectData.length > 0){
-      const detectResult = detectData[0];
-      let cardHTML = `
-        <p><strong>Decision:</strong> ${detectResult.decision}</p>
-        <p><strong>Class:</strong> ${detectResult.class}</p>
-        <p><strong>Confidence:</strong> ${(detectResult.confidence*100).toFixed(2)}%</p>
-      `;
+    let cardHTML = "";
 
-      if(detectResult.decision === "accept"){
-        // STEP 2: Breed API
-        const breedForm = new FormData();
-        breedForm.append("file", file);   // breed expects "file"
+    if(detectData && detectData.length > 0 && detectData[0].decision === "accept"){
+      // STEP 2: Breed Classification
+      const breedForm = new FormData();
+      breedForm.append("file", file);
 
-        const breedResponse = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict", { 
-          method: "POST", 
-          body: breedForm 
-        });
+      const breedResponse = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict", { 
+        method: "POST", 
+        body: breedForm 
+      });
 
-        const breedData = await breedResponse.json();
-        showDebug("Breed API Response", breedData);
+      const breedData = await breedResponse.json();
+      showDebug("Breed API Response", breedData);
 
-        if(Array.isArray(breedData) && breedData.length > 0){
-          const breedTop = breedData[0];
-          const key = breedTop.class.toLowerCase();
+      if (breedData && breedData.predictions) {
+        const preds = breedData.predictions;
+        let topClass = null;
+        let topConf = -1;
+        for (const [cls, conf] of Object.entries(preds)) {
+          if (conf > topConf) {
+            topClass = cls;
+            topConf = conf;
+          }
+        }
+
+        if (topClass) {
+          const key = topClass.toLowerCase();
           const formattedBreed = key.charAt(0).toUpperCase() + key.slice(1);
           const info = breedInfo[key] || {origin:"-", lifespan:"-", milkYield:"-", description:"No info available"};
 
-          cardHTML += `
-            <hr>
-            <p><strong>Breed:</strong> ${formattedBreed} (${(breedTop.confidence*100).toFixed(1)}%)</p>
-            <p><strong>Origin:</strong> ${info.origin}</p>
-            <p><strong>Lifespan:</strong> ${info.lifespan}</p>
-            <p><strong>Milk Yield:</strong> ${info.milkYield}</p>
-            <p><strong>About:</strong> ${info.description}</p>
-          `;
+          breedText.textContent = `Identified Breed: ${formattedBreed} (${(topConf*100).toFixed(1)}%)`;
+          origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
+          lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
+          milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
+          description.textContent = `About: ${info.description}`;
         }
-      } else {
-        cardHTML += `<p>🚫 No cattle detected 😎</p>`;
       }
-
-      breedText.textContent = "Analysis Result";
-      resultBody.innerHTML = cardHTML;
+    } else {
+      breedText.textContent = "🚫 No Cattle Found 😎 We are smart enough!";
+      origin.textContent = "";
+      lifespan.textContent = "";
+      milkYield.textContent = "";
+      description.textContent = "";
     }
 
   } catch(err){
