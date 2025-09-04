@@ -68,7 +68,6 @@
     .result-body p { font-size: 1rem; margin: 10px 0; font-weight: 500; color: #333; }
     .result-body strong { color: #6a1b9a; font-weight: 700; }
 
-    /* Debug JSON */
     .debug { margin-top: 20px; max-width: 500px; width: 100%; background: #222; color: #0f0; font-size: 0.85rem; padding: 12px; border-radius: 12px; white-space: pre-wrap; overflow-x: auto; font-family: monospace; display: none; }
     .debug.visible { display: block; }
   </style>
@@ -98,7 +97,7 @@
   </div>
 
   <div id="result" class="result">
-    <div id="breed" class="result-header"></div>
+    <div id="header" class="result-header"></div>
     <div class="result-body">
       <p id="origin"></p>
       <p id="lifespan"></p>
@@ -119,7 +118,7 @@ const steps = [
 ];
 const progressFill = document.getElementById("progressFill");
 const result = document.getElementById("result");
-const breedText = document.getElementById("breed");
+const header = document.getElementById("header");
 const origin = document.getElementById("origin");
 const lifespan = document.getElementById("lifespan");
 const milkYield = document.getElementById("milkYield");
@@ -158,7 +157,7 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
 
   overlay.classList.add("visible");
   runProgress();
-  debugBox.textContent = ""; // clear old debug
+  debugBox.textContent = ""; 
 
   try {
     // STEP 1: Detection API
@@ -172,8 +171,6 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
 
     const detectData = await detectResponse.json();
     showDebug("Detection API Response", detectData);
-
-    let cardHTML = "";
 
     if(detectData && detectData.length > 0 && detectData[0].decision === "accept"){
       // STEP 2: Breed Classification
@@ -204,7 +201,7 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
           const formattedBreed = key.charAt(0).toUpperCase() + key.slice(1);
           const info = breedInfo[key] || {origin:"-", lifespan:"-", milkYield:"-", description:"No info available"};
 
-          breedText.textContent = `Identified Breed: ${formattedBreed} (${(topConf*100).toFixed(1)}%)`;
+          header.textContent = `Identified Breed: ${formattedBreed} (${(topConf*100).toFixed(1)}%)`;
           origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
           lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
           milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
@@ -212,16 +209,18 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
         }
       }
     } else {
-      breedText.textContent = "🚫 No Cattle Found 😎 We are smart enough!";
-      origin.textContent = "";
-      lifespan.textContent = "";
-      milkYield.textContent = "";
-      description.textContent = "";
+      // Show detection result if rejected
+      const res = detectData[0];
+      header.textContent = `🚫 No Cattle Detected`;
+      origin.textContent = `Decision: ${res?.decision}`;
+      lifespan.textContent = `Class: ${res?.class}`;
+      milkYield.textContent = `Confidence: ${(res?.confidence*100).toFixed(2)}%`;
+      description.textContent = ``;
     }
 
   } catch(err){
     console.error("Error:", err);
-    breedText.textContent = "⚠️ Error: Could not analyze.";
+    header.textContent = "⚠️ Error: Could not analyze.";
   } finally {
     setTimeout(()=>{ overlay.classList.remove("visible"); result.classList.add("visible"); }, 500);
   }
