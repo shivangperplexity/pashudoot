@@ -105,23 +105,24 @@ async function detectCattle(blob){
   }catch(e){ log("Detection API error: "+e.message); return false; }
 }
 
-// Breed API
+// Breed API (fixed exact match)
 async function detectBreed(blob){
   try{
     const form = new FormData();
     form.append("file", blob, "frame.jpg");
     const res = await fetch("https://Shivangguptasih-hf.hf.space/predict",{method:"POST",body:form});
     const data = await res.json();
-    let label = data.prediction || "Not Identified";
-    label = label.toLowerCase();
-    const match = CLASSES.find(c=>label.includes(c.replace(/ /g,''))) || "Not Identified";
-    return match;
+    let label = (data.prediction || "Not Identified").toLowerCase().replace(/\s+/g,'');
+    for(const c of CLASSES){
+      if(label === c.replace(/\s+/g,'')) return c;
+    }
+    return "Not Identified";
   }catch(e){ log("Breed API error: "+e.message); return "Not Identified"; }
 }
 
 // Show result
 function showResult(breed){
-  const info = breedInfo[breed] || breedInfo["Not Identified"];
+  const info = breedInfo[breed] || {fullName:"Not Identified", origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."};
   breedNameEl.textContent = `Breed: ${info.fullName}`;
   originEl.textContent = `Origin: ${info.origin}`;
   lifespanEl.textContent = `Lifespan: ${info.lifespan}`;
@@ -131,10 +132,10 @@ function showResult(breed){
   scanAgainBtn.style.display="inline-block";
 }
 
-// Live scanning: continuously until cattle detected
+// Live scanning until detected
 async function liveScan(){
   if(requestInProgress) return;
-  requestInProgress=true;
+  requestInProgress = true;
 
   const blob = await captureFrame();
   const detected = await detectCattle(blob);
@@ -144,10 +145,10 @@ async function liveScan(){
     const breed = await detectBreed(blob);
     log(`Breed detected: ${breed}`);
     showResult(breed);
-    requestInProgress=false;
+    requestInProgress = false;
   } else {
-    requestInProgress=false;
-    requestAnimationFrame(liveScan); // continue scanning
+    requestInProgress = false;
+    requestAnimationFrame(liveScan);
   }
 }
 
@@ -160,6 +161,7 @@ scanAgainBtn.addEventListener("click",()=>{
 
 // Start camera and scan
 startCamera().then(liveScan);
+
 </script>
 </body>
 </html>
