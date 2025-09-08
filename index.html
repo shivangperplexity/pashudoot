@@ -1,145 +1,387 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>PashuMitra – Cattle Breed Identifier</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cattle Breed Identifier</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; }
-    header { background: #4CAF50; color: white; padding: 1rem; font-size: 1.5rem; }
-    .container { margin: 2rem auto; padding: 2rem; max-width: 600px; border: 1px solid #ccc; border-radius: 8px; }
-    .hidden { display: none; }
-    #result { margin-top: 2rem; text-align: left; }
-    #result h2 { margin-bottom: 0.5rem; }
-    pre { text-align: left; background: #eee; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #fde2e4, #e2f0cb, #cddafd);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+    }
+    h1 { font-size: 2rem; margin-bottom: 20px; font-weight: 700; color: #6a1b9a; text-align: center; }
+    .upload-container {
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 90%;
+      max-width: 340px;
+      height: 200px;
+      background: rgba(255, 255, 255, 0.6);
+      border: 2px dashed #6a1b9a;
+      border-radius: 16px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .upload-container:hover {
+      transform: scale(1.03);
+      box-shadow: 0 8px 16px rgba(106, 27, 154, 0.3);
+    }
+    .upload-icon { width: 40px; height: 40px; margin-bottom: 8px; stroke: #6a1b9a; }
+    .upload-text { color: #333; font-size: 1rem; font-weight: 600; }
+    input[type="file"] { display: none; }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      text-align: center;
+      padding: 20px;
+    }
+    .overlay.visible { display: flex; }
+    .overlay img { transform: scale(2); margin-bottom: 20px; }
+    .progress-texts { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 15px; }
+    .progress-texts p { font-size: 1.1rem; font-weight: 600; opacity: 0.4; transition: all 0.5s ease; color: #444; }
+    .progress-texts p.active { opacity: 1; color: #6a1b9a; font-size: 1.2rem; }
+    .progress-bar { width: 80%; max-width: 320px; height: 8px; background: #ddd; border-radius: 6px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #6a1b9a, #d81b60, #0288d1); border-radius: 6px; transition: width 0.8s ease; }
+
+    .result { margin-top: 20px; max-width: 500px; width: 100%; background: #fff; padding: 0; border-radius: 16px; box-shadow: 0 6px 16px rgba(106, 27, 154, 0.25); opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; overflow: hidden; }
+    .result.visible { opacity: 1; transform: translateY(0); }
+    .result-header { background: linear-gradient(135deg, #6a1b9a, #d81b60); padding: 12px; text-align: center; color: #fff; font-weight: 700; font-size: 1.4rem; }
+    .result-body { padding: 16px 20px; }
+    .result-body p { font-size: 1rem; margin: 10px 0; font-weight: 500; color: #333; }
+    .result-body strong { color: #6a1b9a; font-weight: 700; }
+
+    .debug { margin-top: 20px; max-width: 500px; width: 100%; background: #222; color: #0f0; font-size: 0.85rem; padding: 12px; border-radius: 12px; white-space: pre-wrap; overflow-x: auto; font-family: monospace; display: none; }
+    .debug.visible { display: block; }
   </style>
 </head>
 <body>
-  <header>PashuMitra – Cattle Breed Identifier</header>
-  <div class="container">
-    <h2>Upload Cattle Image</h2>
-    <input type="file" id="imageUpload" accept="image/*"><br><br>
+  <h1>Cattle Breed Identifier</h1>
 
-    <div id="result" class="hidden">
-      <h2 id="header"></h2>
+  <label class="upload-container">
+    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+    </svg>
+    <span class="upload-text">Upload Image</span>
+    <input type="file" accept="image/*" id="imageUpload">
+  </label>
+
+  <div id="overlay" class="overlay">
+    <img src="analyze.gif" alt="Loading...">
+    <div class="progress-texts">
+      <p id="step1">Uploading Image...</p>
+      <p id="step2">Running Model...</p>
+      <p id="step3">Analyzing...</p>
+      <p id="step4">Fetching Results...</p>
+    </div>
+    <div class="progress-bar">
+      <div id="progressFill" class="progress-fill"></div>
+    </div>
+  </div>
+
+  <div id="result" class="result">
+    <div id="header" class="result-header"></div>
+    <div class="result-body">
       <p id="origin"></p>
       <p id="lifespan"></p>
       <p id="milkYield"></p>
       <p id="description"></p>
     </div>
-
-    <h3>Debug Info</h3>
-    <pre id="debug"></pre>
   </div>
 
-  <script>
-    const result = document.getElementById("result");
-    const header = document.getElementById("header");
-    const origin = document.getElementById("origin");
-    const lifespan = document.getElementById("lifespan");
-    const milkYield = document.getElementById("milkYield");
-    const description = document.getElementById("description");
-    const debugBox = document.getElementById("debug");
+  <div id="debug" class="debug"></div>
 
-    // Breed info dictionary (compatible with your mapping)
-    const breedInfo = {
-      "Barbari Goat": {origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small dual-purpose goat."},
-      "Bargur Cow": {origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
-      "Not Identified": {origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."},
-      "Bhadawari Buffalo": {origin:"U.P., India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Milk with high fat content."},
-      "Black Bengal Goat": {origin:"West Bengal, India", lifespan:"8-12 years", milkYield:"1-2 L/day", description:"Popular for meat and skin."},
-      "Hallikar Cow": {origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 L/day", description:"Strong draught breed."},
-      "Hariana Cow": {origin:"Haryana, India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Popular dual-purpose breed."},
-      "Holstein Friesian Cow": {origin:"Netherlands", lifespan:"18-22 years", milkYield:"20-30 L/day", description:"Top dairy cow breed globally."},
-      "Jamunapari Goat": {origin:"U.P., India", lifespan:"10-12 years", milkYield:"2-3 L/day", description:"Large goat with high yield."},
-      "Nagori Goat": {origin:"Rajasthan, India", lifespan:"12-15 years", milkYield:"1-2 L/day", description:"Good draught goat breed."},
-      "Osmanabadi Goat": {origin:"Maharashtra, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Hardy and disease-resistant."},
-      "Tharparkar Cow": {origin:"Rajasthan, India", lifespan:"15-18 years", milkYield:"10-12 L/day", description:"Dual-purpose drought-tolerant."},
-      "Deoni Cow": {origin:"Maharashtra/Karnataka, India", lifespan:"12-15 years", milkYield:"3-8 L/day", description:"Dual-purpose cow breed."},
-      "Gir Cow": {origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 L/day", description:"High-quality A2 milk producer."},
-      "Guzerat Cow": {origin:"Gujarat, India", lifespan:"15-18 years", milkYield:"6-10 L/day", description:"Strong draught and dairy cow."},
-      "Jaffrabadi Buffalo": {origin:"Gujarat, India", lifespan:"14-18 years", milkYield:"6-10 L/day", description:"Massive buffalo breed."},
-      "Jersey Cow": {origin:"Jersey, UK", lifespan:"18-22 years", milkYield:"12-20 L/day", description:"Produces rich milk."},
-      "Mehsana Buffalo": {origin:"Gujarat, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"Famous dairy buffalo."},
-      "Murrah Buffalo": {origin:"Haryana, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"Top dairy buffalo breed."},
-      "Nili Ravi Buffalo": {origin:"Punjab, Pakistan", lifespan:"14-18 years", milkYield:"7-12 L/day", description:"Famous for dairy qualities."},
-      "Pandharpuri Cow": {origin:"Maharashtra, India", lifespan:"12-15 years", milkYield:"5-8 L/day", description:"Adapted to drought areas."},
-      "Rathi Cow": {origin:"Rajasthan, India", lifespan:"15-20 years", milkYield:"8-10 L/day", description:"Heat-tolerant dairy breed."},
-      "Red Sindhi Cow": {origin:"Sindh region", lifespan:"12-15 years", milkYield:"8-12 L/day", description:"Small, hardy and productive."},
-      "Sahiwal Cow": {origin:"Punjab, India/Pakistan", lifespan:"12-15 years", milkYield:"12-18 L/day", description:"Best tropical dairy breed."},
-      "Sirohi Cow": {origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Meat and milk producer."},
-      "Vechur Cow": {origin:"Kerala, India", lifespan:"15-18 years", milkYield:"2-3 L/day", description:"World’s smallest cow breed."}
-    };
+<script>
+const overlay = document.getElementById("overlay");
+const steps = [
+  document.getElementById("step1"),
+  document.getElementById("step2"),
+  document.getElementById("step3"),
+  document.getElementById("step4")
+];
+const progressFill = document.getElementById("progressFill");
+const result = document.getElementById("result");
+const header = document.getElementById("header");
+const origin = document.getElementById("origin");
+const lifespan = document.getElementById("lifespan");
+const milkYield = document.getElementById("milkYield");
+const description = document.getElementById("description");
+const debugBox = document.getElementById("debug");
 
-    function showDebug(title, data) {
-      debugBox.textContent += `\n=== ${title} ===\n` + JSON.stringify(data, null, 2) + "\n";
+// Breed mapping info compatible with your class names (0-25)
+const breedInfo = {
+  "Barbari Goat": {fullName:"Barbari Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small-sized dual-purpose goat."},
+  "Bargur Cow": {fullName:"Bargur Cow", origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
+  "Not Identified": {fullName:"Not Identified", origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."},
+  "Bhadawari Buffalo": {fullName:"Bhadawari Buffalo", origin:"U.P., India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Milk with high fat content."},
+  "Black Bengal Goat": {fullName:"Black Bengal Goat", origin:"West Bengal, India", lifespan:"8-12 years", milkYield:"1-2 L/day", description:"Known for meat and skin quality."},
+  "Hallikar Cow": {fullName:"Hallikar Cow", origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 L/day", description:"Strong draught breed."},
+  "Hariana Cow": {fullName:"Hariana Cow", origin:"Haryana, India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Dairy breed with high milk yield."},
+  "Holstein Friesian Cow": {fullName:"Holstein Friesian Cow", origin:"Netherlands", lifespan:"18-22 years", milkYield:"20-30 L/day", description:"World's leading dairy breed."},
+  "Jamunapari Goat": {fullName:"Jamunapari Goat", origin:"U.P., India", lifespan:"10-12 years", milkYield:"2-3 L/day", description:"Large goat with high milk yield."},
+  "Nagori Goat": {fullName:"Nagori Goat", origin:"Rajasthan, India", lifespan:"12-15 years", milkYield:"1-2 L/day", description:"Good draught goat breed."},
+  "Osmanabadi Goat": {fullName:"Osmanabadi Goat", origin:"Maharashtra, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Hardy and disease-resistant goat."},
+  "Tharparkar Cow": {fullName:"Tharparkar Cow", origin:"Rajasthan, India", lifespan:"15-18 years", milkYield:"10-12 L/day", description:"Dual-purpose heat-tolerant cow."},
+  "Deoni Cow": {fullName:"Deoni Cow", origin:"Maharashtra/Karnataka/Andhra Pradesh", lifespan:"12-15 years", milkYield:"3-8 L/day", description:"Dual-purpose cow breed."},
+  "Gir Cow": {fullName:"Gir Cow", origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 L/day", description:"High-quality A2 milk producer."},
+  "Guzerat Cow": {fullName:"Guzerat Cow", origin:"Gujarat, India", lifespan:"15-18 years", milkYield:"6-10 L/day", description:"Draught and dairy breed."},
+  "Jaffrabadi Buffalo": {fullName:"Jaffrabadi Buffalo", origin:"Gujarat, India", lifespan:"14-18 years", milkYield:"6-10 L/day", description:"Large buffalo, high milk yield."},
+  "Jersey Cow": {fullName:"Jersey Cow", origin:"Jersey Island, UK", lifespan:"18-22 years", milkYield:"12-20 L/day", description:"Rich milk producer."},
+  "Mehsana Buffalo": {fullName:"Mehsana Buffalo", origin:"Gujarat, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"Good dairy buffalo."},
+  "Murrah Buffalo": {fullName:"Murrah Buffalo", origin:"Haryana, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"High milk-producing buffalo."},
+  "Nili Ravi Buffalo": {fullName:"Nili Ravi Buffalo", origin:"Pakistan", lifespan:"14-18 years", milkYield:"7-12 L/day", description:"Famous dairy buffalo breed."},
+  "Pandharpuri Cow": {fullName:"Pandharpuri Cow", origin:"Maharashtra, India", lifespan:"12-15 years", milkYield:"5-8 L/day", description:"Adapted to drought regions."},
+  "Rathi Cow": {fullName:"Rathi Cow", origin:"Rajasthan, India", lifespan:"15-20 years", milkYield:"8-10 L/day", description:"Heat-tolerant dairy cow."},
+  "Red Sindhi Cow": {fullName:"Red Sindhi Cow", origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 L/day", description:"Good milk yield, heat-tolerant."},
+  "Sahiwal Cow": {fullName:"Sahiwal Cow", origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 L/day", description:"Heat-tolerant dairy breed."},
+  "Sirohi Cow": {fullName:"Sirohi Cow", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Good meat and milk producer."},
+  "Vechur Cow": {fullName:"Vechur Cow", origin:"Kerala, India", lifespan:"15-18 years", milkYield:"2-3 L/day", description:"Smallest cow breed, hardy."}
+};
+
+// numeric id mapping (as you provided)
+const breedIdMap = {
+  "Barbari Goat": 0, "Bargur Cow": 1, "Not Identified": 2, "Bhadawari Buffalo": 3,
+  "Black Bengal Goat": 4, "Hallikar Cow": 5, "Hariana Cow": 6, "Holstein Friesian Cow": 7,
+  "Jamunapari Goat": 8, "Nagori Goat": 9, "Osmanabadi Goat": 10, "Tharparkar Cow": 11,
+  "Deoni Cow": 12, "Gir Cow": 13, "Guzerat Cow": 14, "Jaffrabadi Buffalo": 15,
+  "Jersey Cow": 16, "Mehsana Buffalo": 17, "Murrah Buffalo": 18, "Nili Ravi Buffalo": 19,
+  "Pandharpuri Cow": 20, "Rathi Cow": 21, "Red Sindhi Cow": 22, "Sahiwal Cow": 23,
+  "Sirohi Cow": 24, "Vechur Cow": 25
+};
+
+function showStep(index) {
+  steps.forEach((s,i)=>s.classList.toggle("active",i===index));
+  progressFill.style.width = `${((index+1)/steps.length)*100}%`;
+}
+
+async function runProgress() {
+  for(let i=0;i<steps.length;i++){
+    showStep(i);
+    await new Promise(r=>setTimeout(r,1200));
+  }
+}
+
+function showDebug(label, jsonData) {
+  debugBox.classList.add("visible");
+  try {
+    debugBox.textContent += `\n=== ${label} ===\n${JSON.stringify(jsonData, null, 2)}\n`;
+  } catch (e) {
+    debugBox.textContent += `\n=== ${label} ===\n${String(jsonData)}\n`;
+  }
+}
+
+// Flexible parsing for detection API responses
+function parseDetectionResponse(detectData) {
+  // default
+  let label = null;
+  let confidence = 0;
+  let accepted = false;
+
+  if (!detectData) return { label, confidence, accepted };
+
+  // Case: response is an array (common earlier)
+  if (Array.isArray(detectData) && detectData.length > 0) {
+    const first = detectData[0];
+    label = first.label || first.class || first.decision || first.prediction || null;
+    confidence = first.confidence || first.score || first.probability || 0;
+  } else if (typeof detectData === 'object') {
+    // Case: { "prediction": "LABEL_1" } (example you posted)
+    if ('prediction' in detectData) {
+      label = detectData.prediction;
+      confidence = detectData.confidence || detectData.score || 0;
+    } else if ('label' in detectData || 'class' in detectData || 'decision' in detectData) {
+      label = detectData.label || detectData.class || detectData.decision;
+      confidence = detectData.confidence || detectData.score || 0;
+    } else if ('data' in detectData && Array.isArray(detectData.data) && detectData.data.length>0) {
+      const first = detectData.data[0];
+      label = first.label || first.class || first.prediction || null;
+      confidence = first.confidence || first.score || 0;
+    } else {
+      // Try to find a string value that looks like LABEL_0 or LABEL_1 in the object
+      for (const k in detectData) {
+        const v = detectData[k];
+        if (typeof v === 'string' && (v.startsWith('LABEL_') || v.toLowerCase()==='accept' || v.toLowerCase()==='reject')) {
+          label = v;
+          break;
+        }
+      }
+    }
+  }
+
+  const labelStr = label != null ? String(label) : '';
+  const l = labelStr.toLowerCase();
+
+  if (labelStr === 'LABEL_1' || l === 'accept' || l === 'accepted' || labelStr === '1') accepted = true;
+  if (labelStr === 'LABEL_0' || l === 'reject' || l === 'rejected' || labelStr === '0') accepted = false;
+  // If label is 'accept' style (not LABEL_1), handle above. If label is missing but confidence > 0.5 maybe treat accepted? we won't guess.
+  return { label: labelStr, confidence: Number(confidence) || 0, accepted };
+}
+
+// Flexible get top prediction for breed classification responses
+function getTopBreedPrediction(breedData) {
+  // returns { topClass: string|null, topConf: number }
+  if (!breedData) return { topClass: null, topConf: 0 };
+
+  // Case: { predictions: { "Sahiwal Cow": 0.9, ... } }
+  if (breedData.predictions && typeof breedData.predictions === 'object' && !Array.isArray(breedData.predictions)) {
+    const entries = Object.entries(breedData.predictions);
+    if (entries.length === 0) return { topClass: null, topConf: 0 };
+    entries.sort((a,b)=>b[1]-a[1]);
+    return { topClass: entries[0][0], topConf: entries[0][1] };
+  }
+
+  // Case: breedData is array of { label, score } or {label, confidence}
+  if (Array.isArray(breedData) && breedData.length > 0) {
+    let topClass = null, topConf = -1;
+    for (const item of breedData) {
+      const cls = item.label || item.class || item.name || item[0];
+      const conf = item.score || item.confidence || item[1] || 0;
+      if (typeof conf === 'number' && conf > topConf) { topClass = cls; topConf = conf; }
+    }
+    return { topClass, topConf: topConf > -1 ? topConf : 0 };
+  }
+
+  // Case: { data: [ {label,score}, ... ] }
+  if (breedData.data && Array.isArray(breedData.data) && breedData.data.length > 0) {
+    let topClass = null, topConf = -1;
+    for (const item of breedData.data) {
+      const cls = item.label || item.class || item.name;
+      const conf = item.score || item.confidence || 0;
+      if (conf > topConf) { topClass = cls; topConf = conf; }
+    }
+    return { topClass, topConf: topConf > -1 ? topConf : 0 };
+  }
+
+  // Case: flat object with label/score
+  if (breedData.label && (breedData.score || breedData.confidence)) {
+    return { topClass: breedData.label, topConf: breedData.score || breedData.confidence || 0 };
+  }
+
+  // fallback: if breedData.prediction is string
+  if (typeof breedData.prediction === 'string') {
+    return { topClass: breedData.prediction, topConf: breedData.confidence || 0 };
+  }
+
+  return { topClass: null, topConf: 0 };
+}
+
+// Try to find breed info with flexible key matching
+function findBreedInfoByName(name) {
+  if (!name) return null;
+  // direct match
+  if (breedInfo[name]) return breedInfo[name];
+  // normalize lower-case comparison
+  const normalized = String(name).toLowerCase().replace(/_/g,' ').replace(/\s+/g,' ').trim();
+  for (const k of Object.keys(breedInfo)) {
+    if (k.toLowerCase() === normalized) return breedInfo[k];
+  }
+  // loose contains match
+  for (const k of Object.keys(breedInfo)) {
+    if (k.toLowerCase().includes(normalized) || normalized.includes(k.toLowerCase())) return breedInfo[k];
+  }
+  return null;
+}
+
+document.getElementById("imageUpload").addEventListener("change", async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+
+  overlay.classList.add("visible");
+  runProgress();
+  debugBox.textContent = ""; 
+
+  try {
+    // STEP 1: Cattle Detection (send as multipart/form-data with key "file")
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const detectResponse = await fetch("https://rjsmoke00-cd.hf.space/predict", { 
+      method: "POST", 
+      body: formData 
+    });
+
+    // Parse JSON safely
+    let detectData;
+    try { detectData = await detectResponse.json(); } catch (e) { detectData = null; }
+    showDebug("Detection API Response", detectData);
+
+    // Robust parsing
+    const { label, confidence, accepted } = parseDetectionResponse(detectData);
+
+    if(accepted){
+      // STEP 2: Breed Classification using the second API (unchanged)
+      const breedForm = new FormData();
+      breedForm.append("file", file);
+
+      const breedResponse = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict", { 
+        method: "POST", 
+        body: breedForm 
+      });
+
+      let breedData;
+      try { breedData = await breedResponse.json(); } catch (e) { breedData = null; }
+      showDebug("Breed API Response", breedData);
+
+      // Try to extract predictions - many HF apps return { predictions: {...} } but be flexible
+      const possiblePredData = breedData && (breedData.predictions || breedData.data || breedData);
+      const { topClass, topConf } = getTopBreedPrediction(possiblePredData);
+
+      if (topClass && String(topClass).toLowerCase() !== "beetal") {
+        // lookup breed info (flexible)
+        const info = findBreedInfoByName(topClass) || { fullName: topClass, origin:"-", lifespan:"-", milkYield:"-", description:"No info available" };
+        // optional: find numeric id if available
+        const id = breedIdMap[topClass] !== undefined ? breedIdMap[topClass] : (Object.keys(breedIdMap).find(k=>k.toLowerCase()===String(topClass).toLowerCase()) ? breedIdMap[Object.keys(breedIdMap).find(k=>k.toLowerCase()===String(topClass).toLowerCase())] : null);
+
+        header.textContent = `Identified Breed: ${info.fullName} (${(topConf*100).toFixed(1)}%)`;
+        origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
+        lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
+        milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
+        description.textContent = `About: ${info.description}`;
+
+        // add debug line with breed id if found
+        if (id !== null) showDebug("Breed ID Mapping", { label: topClass, id });
+      } else {
+        header.textContent = "🚫 Not Classified (Beetal or Unknown)";
+        origin.textContent = "";
+        lifespan.textContent = "";
+        milkYield.textContent = "";
+        description.textContent = "";
+      }
+
+    } else {
+      // Detection rejected
+      header.textContent = `🚫 No Cattle Detected (Confidence: ${(confidence*100).toFixed(1)}%)`;
+      origin.textContent = `Detection Result: Rejected (LABEL_0)`;
+      lifespan.textContent = ``;
+      milkYield.textContent = ``;
+      description.textContent = ``;
     }
 
-    document.getElementById("imageUpload").addEventListener("change", async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      debugBox.textContent = "";
-
-      try {
-        // STEP 1: Detection
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const detectResponse = await fetch("https://rjsmoke00-cd.hf.space/predict", { method: "POST", body: formData });
-        const detectData = await detectResponse.json();
-        showDebug("Detection API Response", detectData);
-
-        let accepted = false;
-        let confidence = 0;
-        if (detectData && detectData.length > 0) {
-          const label = detectData[0].label || detectData[0].class;
-          confidence = detectData[0].confidence || 0;
-          if (label === "LABEL_1") accepted = true;
-        }
-
-        if (accepted) {
-          // STEP 2: Breed Classification
-          const breedForm = new FormData();
-          breedForm.append("file", file);
-
-          const breedResponse = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict", { method: "POST", body: breedForm });
-          const breedData = await breedResponse.json();
-          showDebug("Breed API Response", breedData);
-
-          if (breedData && breedData.predictions) {
-            const preds = breedData.predictions;
-            let topClass = null;
-            let topConf = -1;
-            for (const [cls, conf] of Object.entries(preds)) {
-              if (conf > topConf) { topClass = cls; topConf = conf; }
-            }
-
-            if (topClass && topClass !== "Not Identified") {
-              const info = breedInfo[topClass] || {origin:"-", lifespan:"-", milkYield:"-", description:"No info available"};
-              header.textContent = `✅ Detected Cattle (Conf: ${(confidence * 100).toFixed(1)}%) → Breed: ${topClass} (${(topConf * 100).toFixed(1)}%)`;
-              origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
-              lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
-              milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
-              description.textContent = `About: ${info.description}`;
-            } else {
-              header.textContent = `✅ Cattle Detected (Conf: ${(confidence * 100).toFixed(1)}%) → 🚫 Breed Not Identified`;
-              origin.textContent = lifespan.textContent = milkYield.textContent = description.textContent = "";
-            }
-          }
-        } else {
-          header.textContent = `🚫 No Cattle Detected (Confidence: ${(confidence * 100).toFixed(1)}%)`;
-          origin.textContent = "Detection Result: Rejected (LABEL_0)";
-          lifespan.textContent = "";
-          milkYield.textContent = "";
-          description.textContent = "";
-        }
-      } catch (err) {
-        console.error("Error:", err);
-        header.textContent = "⚠️ Error: Could not analyze.";
-      } finally {
-        result.classList.remove("hidden");
-      }
-    });
-  </script>
+  } catch(err){
+    console.error("Error:", err);
+    header.textContent = "⚠️ Error: Could not analyze.";
+    showDebug("Client Error", String(err));
+  } finally {
+    setTimeout(()=>{ overlay.classList.remove("visible"); result.classList.add("visible"); }, 500);
+  }
+});
+</script>
 </body>
 </html>
