@@ -12,64 +12,41 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 20px;
   font-family: 'Inter', sans-serif;
   margin: 0;
-}
-h1 { font-size: 2rem; margin-bottom: 20px; font-weight: 700; color: #6a1b9a; text-align: center; }
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(4px);
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  text-align: center;
   padding: 20px;
 }
+h1 { font-size: 2rem; margin-bottom: 20px; font-weight: 700; color: #6a1b9a; text-align: center; }
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(4px);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 1000; text-align: center; padding: 20px;
+}
 .overlay.visible { display: flex; }
-
-.status-text {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #6a1b9a;
-  min-height: 1.5em;
-}
-.status-dots span {
-  display: inline-block;
-  animation: bounce 1s infinite;
-}
+.status-text { font-size: 1.2rem; font-weight: 600; color: #6a1b9a; min-height: 1.5em; }
+.status-dots span { display: inline-block; animation: bounce 1s infinite; }
 .status-dots span:nth-child(2) { animation-delay: 0.2s; }
 .status-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes bounce {
-  0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-8px); }
-}
-
-.result { margin-top: 20px; max-width: 500px; width: 90%; background: #fff; padding: 0; border-radius: 16px; box-shadow: 0 6px 16px rgba(106, 27, 154, 0.25); opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; overflow: hidden; }
-.result.visible { opacity: 1; transform: translateY(0); }
-.result-header { background: linear-gradient(135deg, #6a1b9a, #d81b60); padding: 12px; text-align: center; color: #fff; font-weight: 700; font-size: 1.4rem; }
-.result-body { padding: 16px 20px; }
-.result-body p { font-size: 1rem; margin: 10px 0; font-weight: 500; color: #333; }
-.result-body strong { color: #6a1b9a; font-weight: 700; }
-
-#cameraContainer { position: relative; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 480px; }
-#video { border-radius: 16px; width: 100%; height: auto; object-fit: cover; }
-#overlayCanvas { position: absolute; top:0; left:0; width:100%; height:100%; border-radius:16px; }
-#controls { margin-top: 10px; display:flex; gap:10px; flex-wrap: wrap; justify-content:center; }
-button { padding: 8px 16px; font-size:1rem; font-weight:600; border:none; border-radius:12px; background:#6a1b9a; color:white; cursor:pointer; }
+@keyframes bounce { 0%,80%,100%{transform:translateY(0);} 40%{transform:translateY(-8px);} }
+.result { margin-top: 20px; max-width: 500px; width: 90%; background: #fff; padding: 0; border-radius: 16px; box-shadow: 0 6px 16px rgba(106,27,154,0.25); opacity:0; transform:translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; overflow: hidden;}
+.result.visible { opacity:1; transform:translateY(0);}
+.result-header { background: linear-gradient(135deg,#6a1b9a,#d81b60); padding:12px; text-align:center; color:#fff; font-weight:700; font-size:1.4rem; }
+.result-body { padding:16px 20px; }
+.result-body p { font-size:1rem; margin:10px 0; font-weight:500; color:#333; }
+.result-body strong { color:#6a1b9a; font-weight:700; }
+#cameraContainer { position: relative; display:flex; flex-direction:column; align-items:center; width:100%; max-width:480px; }
+#video { border-radius:16px; width:100%; height:auto; object-fit:cover; }
+#overlayCanvas { position:absolute; top:0; left:0; width:100%; height:100%; border-radius:16px; }
+#controls { margin-top:10px; display:flex; gap:10px; flex-wrap: wrap; justify-content:center; }
+button { padding:8px 16px; font-size:1rem; font-weight:600; border:none; border-radius:12px; background:#6a1b9a; color:white; cursor:pointer; }
 </style>
 </head>
 <body>
 <h1>Cattle Breed Identifier</h1>
-
 <div class="overlay" id="overlay">
-  <div class="status-text" id="status">Analyzing<span class="status-dots"><span>.</span><span>.</span><span>.</span></span></div>
+  <div class="status-text" id="status">Scanning<span class="status-dots"><span>.</span><span>.</span><span>.</span></span></div>
 </div>
 
 <div id="result" class="result">
@@ -86,7 +63,7 @@ button { padding: 8px 16px; font-size:1rem; font-weight:600; border:none; border
   <video id="video" autoplay muted playsinline></video>
   <canvas id="overlayCanvas"></canvas>
   <div id="controls">
-    <button id="scanAgainBtn">Scan</button>
+    <button id="scanAgainBtn">Scan Again</button>
     <button id="switchCameraBtn">Switch Camera</button>
   </div>
 </div>
@@ -134,9 +111,10 @@ const overlayCanvas = document.getElementById("overlayCanvas");
 const scanAgainBtn = document.getElementById("scanAgainBtn");
 const switchCameraBtn = document.getElementById("switchCameraBtn");
 
-let scanning = false;
+let scanning = true;
 let currentCamera = "environment";
 let stream;
+let lastRequest = 0;
 
 async function startCamera(){
   if(stream){ stream.getTracks().forEach(t=>t.stop()); }
@@ -160,10 +138,7 @@ function updateResult(breed) {
   result.classList.add("visible");
 }
 
-// Live scan with bounding box
-let lastScanTime=0;
 async function scanFrame(){
-  if(!scanning) return;
   const ctx = overlayCanvas.getContext("2d");
   overlayCanvas.width = video.videoWidth;
   overlayCanvas.height = video.videoHeight;
@@ -171,37 +146,35 @@ async function scanFrame(){
   ctx.drawImage(video,0,0,overlayCanvas.width,overlayCanvas.height);
 
   const now = Date.now();
-  if(now - lastScanTime < 500) { requestAnimationFrame(scanFrame); return; }
-  lastScanTime = now;
+  if(now - lastRequest > 500 && scanning){
+    lastRequest = now;
+    overlayCanvas.toBlob(async (blob)=>{
+      if(!scanning) return;
+      const formData = new FormData();
+      formData.append("file",blob,"frame.jpg");
+      try{
+        const detectResp = await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST",body:formData});
+        const detectData = await detectResp.json();
+        if(detectData.prediction==="LABEL_1"){
+          ctx.strokeStyle="#ff0000";
+          ctx.lineWidth=4;
+          const boxWidth=overlayCanvas.width*0.5;
+          const boxHeight=overlayCanvas.height*0.5;
+          const boxX=(overlayCanvas.width-boxWidth)/2;
+          const boxY=(overlayCanvas.height-boxHeight)/2;
+          ctx.strokeRect(boxX,boxY,boxWidth,boxHeight);
 
-  overlayCanvas.toBlob(async (blob)=>{
-    if(!scanning) return;
-    const formData = new FormData();
-    formData.append("file",blob,"frame.jpg");
-    try{
-      // Detect cow/goat
-      const detectResp = await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST",body:formData});
-      const detectData = await detectResp.json();
-      if(detectData.prediction==="LABEL_1"){
-        // Draw bounding box (fake center box for demo, ideally detection API gives coords)
-        ctx.strokeStyle="#ff0000";
-        ctx.lineWidth=4;
-        const boxWidth=overlayCanvas.width*0.5;
-        const boxHeight=overlayCanvas.height*0.5;
-        const boxX=(overlayCanvas.width-boxWidth)/2;
-        const boxY=(overlayCanvas.height-boxHeight)/2;
-        ctx.strokeRect(boxX,boxY,boxWidth,boxHeight);
-
-        showOverlay("Identifying Breed");
-        const breedResp = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:formData});
-        const breedData = await breedResp.json();
-        scanning=false;
-        hideOverlay();
-        updateResult(breedData.prediction || "Not Identified");
-      }
-    }catch(e){ console.error(e);}
-    if(scanning) requestAnimationFrame(scanFrame);
-  },"image/jpeg");
+          showOverlay("Identifying Breed");
+          const breedResp = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:formData});
+          const breedData = await breedResp.json();
+          scanning=false;
+          hideOverlay();
+          updateResult(breedData.prediction || "Not Identified");
+        }
+      }catch(e){ console.error(e);}
+    },"image/jpeg");
+  }
+  if(scanning) requestAnimationFrame(scanFrame);
 }
 
 scanAgainBtn.addEventListener("click", ()=>{
@@ -215,7 +188,7 @@ switchCameraBtn.addEventListener("click", ()=>{
   startCamera();
 });
 
-startCamera();
+startCamera().then(()=>{ requestAnimationFrame(scanFrame); });
 </script>
 </body>
 </html>
