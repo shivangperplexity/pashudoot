@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cattle Breed Identifier - Camera</title>
+<title>Cattle Breed Identifier - Live Camera</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 body {
@@ -86,13 +86,12 @@ button { padding: 8px 16px; font-size:1rem; font-weight:600; border:none; border
   <video id="video" autoplay muted playsinline></video>
   <canvas id="overlayCanvas"></canvas>
   <div id="controls">
-    <button id="scanAgainBtn">Scan Again</button>
+    <button id="scanAgainBtn">Scan</button>
     <button id="switchCameraBtn">Switch Camera</button>
   </div>
 </div>
 
 <script>
-// Breed info mapping
 const breedInfo = {
   "Barbari Goat": {fullName:"Barbari Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small-sized dual-purpose goat."},
   "Bargur Cow": {fullName:"Bargur Cow", origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
@@ -139,12 +138,18 @@ let scanning = false;
 let currentCamera = "environment";
 let stream;
 
-// Helpers
+async function startCamera(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); }
+  stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode: currentCamera, width:{ideal:480}, height:{ideal:360} } });
+  video.srcObject = stream;
+}
+
 function showOverlay(text) {
   status.innerHTML = text + '<span class="status-dots"><span>.</span><span>.</span><span>.</span></span>';
   overlay.classList.add("visible");
 }
 function hideOverlay() { overlay.classList.remove("visible"); }
+
 function updateResult(breed) {
   const info = breedInfo[breed] || breedInfo["Not Identified"];
   header.textContent = `✅ Cattle Detected → Breed: ${info.fullName}`;
@@ -155,50 +160,51 @@ function updateResult(breed) {
   result.classList.add("visible");
 }
 
-// Camera
-async function startCamera(){
-  if(stream){ stream.getTracks().forEach(t=>t.stop()); }
-  stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode: currentCamera, width:{ideal:480}, height:{ideal:360} } });
-  video.srcObject = stream;
-  scanning = true;
-  requestAnimationFrame(scanFrame);
-}
-
-let lastScanTime = 0;
+// Live scan with bounding box
+let lastScanTime=0;
 async function scanFrame(){
   if(!scanning) return;
-  const now = Date.now();
-  if(now - lastScanTime < 500) { requestAnimationFrame(scanFrame); return; } // throttle
-  lastScanTime = now;
-
   const ctx = overlayCanvas.getContext("2d");
   overlayCanvas.width = video.videoWidth;
   overlayCanvas.height = video.videoHeight;
+  ctx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
   ctx.drawImage(video,0,0,overlayCanvas.width,overlayCanvas.height);
+
+  const now = Date.now();
+  if(now - lastScanTime < 500) { requestAnimationFrame(scanFrame); return; }
+  lastScanTime = now;
+
   overlayCanvas.toBlob(async (blob)=>{
     if(!scanning) return;
     const formData = new FormData();
     formData.append("file",blob,"frame.jpg");
     try{
-      showOverlay("Analyzing");
+      // Detect cow/goat
       const detectResp = await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST",body:formData});
       const detectData = await detectResp.json();
       if(detectData.prediction==="LABEL_1"){
+        // Draw bounding box (fake center box for demo, ideally detection API gives coords)
+        ctx.strokeStyle="#ff0000";
+        ctx.lineWidth=4;
+        const boxWidth=overlayCanvas.width*0.5;
+        const boxHeight=overlayCanvas.height*0.5;
+        const boxX=(overlayCanvas.width-boxWidth)/2;
+        const boxY=(overlayCanvas.height-boxHeight)/2;
+        ctx.strokeRect(boxX,boxY,boxWidth,boxHeight);
+
+        showOverlay("Identifying Breed");
         const breedResp = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:formData});
         const breedData = await breedResp.json();
         scanning=false;
-        updateResult(breedData.prediction || "Not Identified");
         hideOverlay();
-        scanAgainBtn.style.display="inline-block";
-      } else {
-        requestAnimationFrame(scanFrame);
+        updateResult(breedData.prediction || "Not Identified");
       }
-    }catch(e){ console.error(e); requestAnimationFrame(scanFrame);}
+    }catch(e){ console.error(e);}
+    if(scanning) requestAnimationFrame(scanFrame);
   },"image/jpeg");
 }
 
 scanAgainBtn.addEventListener("click", ()=>{
-  scanAgainBtn.style.display="none";
   result.classList.remove("visible");
   scanning=true;
   requestAnimationFrame(scanFrame);
