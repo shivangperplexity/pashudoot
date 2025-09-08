@@ -97,18 +97,15 @@ async function startCamera(){
   }catch(e){ log("Camera error: "+e); }
 }
 
-// Minimal preprocessing: crop black or white background
+// Crop black or white background only
 function preprocessFrame(){
-  const w = video.videoWidth;
-  const h = video.videoHeight;
-  canvas.width = w;
-  canvas.height = h;
-  ctx.drawImage(video, 0, 0, w, h);
-
-  const imgData = ctx.getImageData(0,0,w,h);
-  const data = imgData.data;
+  const w=video.videoWidth;
+  const h=video.videoHeight;
+  canvas.width=w; canvas.height=h;
+  ctx.drawImage(video,0,0,w,h);
+  const imgData=ctx.getImageData(0,0,w,h);
+  const data=imgData.data;
   let minX=w, minY=h, maxX=0, maxY=0;
-
   for(let y=0;y<h;y++){
     for(let x=0;x<w;x++){
       const idx=(y*w+x)*4;
@@ -119,26 +116,22 @@ function preprocessFrame(){
       }
     }
   }
-
   if(minX>maxX || minY>maxY){ minX=0; minY=0; maxX=w; maxY=h; }
   const cropW=maxX-minX, cropH=maxY-minY;
-
   const tempCanvas=document.createElement("canvas");
   tempCanvas.width=cropW; tempCanvas.height=cropH;
-  const tctx=tempCanvas.getContext("2d");
-  tctx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
-
+  tempCanvas.getContext("2d").drawImage(canvas,minX,minY,cropW,cropH,0,0,cropW,cropH);
   return new Promise(resolve=>{ tempCanvas.toBlob(blob=>resolve(blob),"image/jpeg",0.9); });
 }
 
 // Detection API
 async function detectCattle(blob){
   try{
-    if(!blob) throw new Error("No blob created");
-    const form = new FormData();
-    form.append("file", blob, "frame.jpg");
-    const res = await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST", body:form});
-    const data = await res.json();
+    if(!blob) throw new Error("No blob");
+    const form=new FormData();
+    form.append("file",blob,"frame.jpg");
+    const res=await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST",body:form});
+    const data=await res.json();
     return data.prediction || "LABEL_0";
   }catch(e){ log("Detection API error: "+e.message); return "LABEL_0"; }
 }
@@ -146,16 +139,16 @@ async function detectCattle(blob){
 // Breed API
 async function detectBreed(blob){
   try{
-    if(!blob) throw new Error("No blob created");
-    const form = new FormData();
-    form.append("file", blob, "frame.jpg");
-    const res = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST", body:form});
-    const data = await res.json();
+    if(!blob) throw new Error("No blob");
+    const form=new FormData();
+    form.append("file",blob,"frame.jpg");
+    const res=await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:form});
+    const data=await res.json();
     return data.prediction || "Not Identified";
   }catch(e){ log("Breed API error: "+e.message); return "Not Identified"; }
 }
 
-// Show breed info
+// Show result
 function showResult(breed){
   const info = breedInfo[breed] || breedInfo["Not Identified"];
   breedNameEl.textContent = `Breed: ${info.fullName}`;
@@ -167,36 +160,47 @@ function showResult(breed){
   scanAgainBtn.style.display="inline-block";
 }
 
-// Live scanning loop
-async function liveScan(){
-  if(!scanning || requestInProgress){
-    requestAnimationFrame(liveScan);
-    return;
-  }
-  requestInProgress=true;
-  const blob = await preprocessFrame();
-  const label = await detectCattle(blob);
-  log(`Detection: ${label}`);
+// Live scanning for 20 seconds
+async function liveScan20s(){
+  const breedCounts={};
+  const startTime=Date.now();
+  scanning=true;
 
-  if(label==="LABEL_1"){
-    const breed = await detectBreed(blob);
-    log(`Breed detected: ${breed}`);
-    showResult(breed);
-    scanning=false; // freeze
+  async function scanLoop(){
+    if(!scanning) return;
+    const blob = await preprocessFrame();
+    const label = await detectCattle(blob);
+    log(`Detection: ${label}`);
+    if(label==="LABEL_1"){
+      const breed = await detectBreed(blob);
+      log(`Breed detected: ${breed}`);
+      breedCounts[breed] = (breedCounts[breed]||0)+1;
+    }
+    if(Date.now()-startTime<20000){
+      requestAnimationFrame(scanLoop);
+    }else{
+      scanning=false;
+      // choose breed with max frequency
+      let finalBreed="Not Identified", maxCount=0;
+      for(const b in breedCounts){
+        if(breedCounts[b]>maxCount){ maxCount=breedCounts[b]; finalBreed=b; }
+      }
+      showResult(finalBreed);
+    }
   }
-  requestInProgress=false;
-  setTimeout(()=>requestAnimationFrame(liveScan),500);
+
+  scanLoop();
 }
 
-// Scan again
+// Scan again button
 scanAgainBtn.addEventListener("click",()=>{
-  scanning=true;
   resultDiv.style.display="none";
   scanAgainBtn.style.display="none";
+  liveScan20s();
 });
 
 // Start camera and scanning
-startCamera().then(liveScan);
+startCamera().then(liveScan20s);
 
 </script>
 </body>
