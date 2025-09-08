@@ -19,8 +19,11 @@
   }
   h1 { font-size: 2rem; margin-bottom: 20px; font-weight: 700; color: #6a1b9a; text-align: center; }
   .camera-container { position: relative; width: 640px; height: 480px; }
-  video { width: 100%; height: 100%; border-radius: 16px; border: 3px solid #6a1b9a; }
-  canvas { position: absolute; top: 0; left: 0; border-radius: 16px; }
+  video, canvas { width: 100%; height: 100%; border-radius: 16px; }
+  canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+  .controls { margin-top: 10px; display: flex; gap: 10px; }
+  button { padding: 8px 16px; border: none; border-radius: 8px; background: #6a1b9a; color: #fff; font-weight: 600; cursor: pointer; }
+  button:hover { background: #d81b60; }
   .breed-info { margin-top: 20px; max-width: 640px; width: 100%; background: #fff; padding: 16px; border-radius: 16px; box-shadow: 0 6px 16px rgba(106,27,154,0.25); }
   .breed-info p { font-size: 1rem; margin: 8px 0; font-weight: 500; color: #333; }
   .breed-info strong { color: #6a1b9a; font-weight: 700; }
@@ -33,6 +36,11 @@
 <div class="camera-container">
   <video id="camera" autoplay playsinline></video>
   <canvas id="overlayCanvas" width="640" height="480"></canvas>
+</div>
+
+<div class="controls">
+  <button id="switchCamera">Switch Camera</button>
+  <button id="scanAgain" style="display:none;">Scan Again</button>
 </div>
 
 <div class="status" id="status">Initializing...</div>
@@ -79,88 +87,95 @@ const breedInfo = {
 // ======== DOM Elements ========
 const video = document.getElementById("camera");
 const overlayCanvas = document.getElementById("overlayCanvas");
-const overlayCtx = overlayCanvas.getContext("2d");
-const statusEl = document.getElementById("status");
-const breedNameEl = document.getElementById("breedName");
-const originEl = document.getElementById("origin");
-const lifespanEl = document.getElementById("lifespan");
-const milkYieldEl = document.getElementById("milkYield");
-const descriptionEl = document.getElementById("description");
+const ctx = overlayCanvas.getContext("2d");
+const status = document.getElementById("status");
+const switchCameraBtn = document.getElementById("switchCamera");
+const scanAgainBtn = document.getElementById("scanAgain");
+const breedName = document.getElementById("breedName");
+const origin = document.getElementById("origin");
+const lifespan = document.getElementById("lifespan");
+const milkYield = document.getElementById("milkYield");
+const description = document.getElementById("description");
+
+let currentStream = null;
+let useFrontCamera = false;
+let scanning = true;
+
+// ======== Camera Setup ========
+async function startCamera() {
+  if (currentStream) {
+    currentStream.getTracks().forEach(track => track.stop());
+  }
+  const constraints = {
+    video: { facingMode: useFrontCamera ? "user" : "environment", width: 640, height: 480 },
+    audio: false
+  };
+  currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+  video.srcObject = currentStream;
+  scanning = true;
+  status.textContent = "Camera started. Scanning...";
+  scanAgainBtn.style.display = "none";
+  requestAnimationFrame(scanFrame);
+}
+
+switchCameraBtn.addEventListener("click", () => {
+  useFrontCamera = !useFrontCamera;
+  startCamera();
+});
+
+scanAgainBtn.addEventListener("click", () => {
+  scanning = true;
+  status.textContent = "Scanning again...";
+  scanAgainBtn.style.display = "none";
+  requestAnimationFrame(scanFrame);
+});
+
+// ======== Scan Frame ========
+async function scanFrame() {
+  if (!scanning) return;
+  ctx.drawImage(video, 0, 0, overlayCanvas.width, overlayCanvas.height);
+
+  // Capture frame as Blob
+  overlayCanvas.toBlob(async (blob) => {
+    if (!scanning) return;
+
+    const formData = new FormData();
+    formData.append("file", blob, "frame.jpg");
+
+    try {
+      const detectResp = await fetch("https://rjsmoke00-cd.hf.space/predict", { method:"POST", body: formData });
+      const detectData = await detectResp.json();
+      let label = detectData?.prediction || "LABEL_0";
+
+      if(label !== "LABEL_0") {
+        scanning = false; // freeze frame
+        updateBreedInfo(label);
+        status.textContent = `Breed detected: ${label}`;
+        scanAgainBtn.style.display = "inline-block";
+      } else {
+        status.textContent = "Analyzing...";
+        requestAnimationFrame(scanFrame);
+      }
+    } catch(err) {
+      console.error(err);
+      status.textContent = "Error scanning.";
+      requestAnimationFrame(scanFrame);
+    }
+  }, "image/jpeg");
+}
+
+// ======== Update Breed Info ========
+function updateBreedInfo(breed) {
+  const info = breedInfo[breed] || breedInfo["Not Identified"];
+  breedName.innerHTML = `<strong>Breed:</strong> ${breed}`;
+  origin.innerHTML = `<strong>Origin:</strong> ${info.origin}`;
+  lifespan.innerHTML = `<strong>Lifespan:</strong> ${info.lifespan}`;
+  milkYield.innerHTML = `<strong>Milk Yield:</strong> ${info.milkYield}`;
+  description.innerHTML = `<strong>About:</strong> ${info.description}`;
+}
 
 // ======== Start Camera ========
-navigator.mediaDevices.getUserMedia({ video: true })
-.then(stream => { video.srcObject = stream; statusEl.textContent = "Camera started"; })
-.catch(err => { console.error(err); statusEl.textContent = "Camera not accessible"; });
-
-// ======== Utility to Draw Overlay ========
-function drawOverlay(label) {
-  overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-  overlayCtx.strokeStyle = "#6a1b9a";
-  overlayCtx.lineWidth = 3;
-  overlayCtx.strokeRect(50, 50, 540, 380); // static bounding box
-  overlayCtx.font = "22px Inter";
-  overlayCtx.fillStyle = "#6a1b9a";
-  overlayCtx.fillText(label, 60, 45);
-}
-
-// ======== Utility to Update Info Panel ========
-function updateBreedInfo(label) {
-  const info = breedInfo[label] || breedInfo["Not Identified"];
-  breedNameEl.innerHTML = `<strong>Breed:</strong> ${label}`;
-  originEl.innerHTML = `<strong>Origin:</strong> ${info.origin}`;
-  lifespanEl.innerHTML = `<strong>Lifespan:</strong> ${info.lifespan}`;
-  milkYieldEl.innerHTML = `<strong>Milk Yield:</strong> ${info.milkYield}`;
-  descriptionEl.innerHTML = `<strong>About:</strong> ${info.description}`;
-}
-
-// ======== Capture Frames and Analyze ========
-const tempCanvas = document.createElement("canvas");
-const tempCtx = tempCanvas.getContext("2d");
-
-async function analyzeFrame() {
-  if(video.readyState < 2) return; // video not ready
-  tempCanvas.width = video.videoWidth;
-  tempCanvas.height = video.videoHeight;
-  tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-
-  const blob = await new Promise(res => tempCanvas.toBlob(res, 'image/jpeg'));
-
-  statusEl.textContent = "Analyzing...";
-
-  try {
-    // Step 1: Detection API
-    const detectForm = new FormData();
-    detectForm.append("file", blob);
-    const detectResp = await fetch("https://rjsmoke00-cd.hf.space/predict", { method:"POST", body: detectForm });
-    const detectData = await detectResp.json();
-    let detectLabel = detectData.prediction || "LABEL_0";
-
-    if(detectLabel === "LABEL_0") {
-      updateBreedInfo("Not Identified");
-      drawOverlay("Not Identified");
-      statusEl.textContent = "No cattle detected";
-      return;
-    }
-
-    // Step 2: Breed Classification API
-    const breedForm = new FormData();
-    breedForm.append("file", blob);
-    const breedResp = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict", { method:"POST", body: breedForm });
-    const breedData = await breedResp.json();
-    const breedLabel = breedData.prediction || "Not Identified";
-
-    updateBreedInfo(breedLabel);
-    drawOverlay(breedLabel);
-    statusEl.textContent = `Detected: ${breedLabel}`;
-
-  } catch(err) {
-    console.error(err);
-    statusEl.textContent = "Error analyzing frame";
-  }
-}
-
-// analyze every 2 seconds
-setInterval(analyzeFrame, 2000);
+startCamera();
 </script>
 </body>
 </html>
