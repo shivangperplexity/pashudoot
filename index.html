@@ -180,9 +180,9 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
   debugBox.textContent = ""; 
 
   try {
-    // STEP 1: Cattle Detection
+    // STEP 1: Cattle Detection (fixed to use "file")
     const formData = new FormData();
-    formData.append("files", file);
+    formData.append("file", file);
 
     const detectResponse = await fetch("https://rjsmoke00-cd.hf.space/predict", { 
       method: "POST", 
@@ -193,7 +193,7 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
     showDebug("Detection API Response", detectData);
 
     if(detectData && detectData.length > 0 && detectData[0].decision === "accept"){
-      // STEP 2: Breed Classification using new API
+      // STEP 2: Breed Classification (unchanged)
       const breedForm = new FormData();
       breedForm.append("file", file);
 
