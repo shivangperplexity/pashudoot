@@ -3,27 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cattle Breed Live Scanner</title>
+<title>Cattle & Goat Live Scanner</title>
 <style>
-  body { font-family: 'Inter', sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; margin:0; padding:20px; background:#f0f4f8; }
-  h1 { color:#6a1b9a; text-align:center; }
-  #camera-container { position:relative; width:90%; max-width:640px; margin-top:10px; }
-  video { width:100%; transform:none; border-radius:12px; }
-  canvas { display:none; }
-  #overlay-box { position:absolute; border:3px solid #d81b60; top:0; left:0; width:0; height:0; pointer-events:none; }
-  #result { margin-top:20px; background:#fff; padding:16px; border-radius:12px; width:90%; max-width:640px; box-shadow:0 4px 12px rgba(0,0,0,0.2); display:none; }
-  #result p { margin:5px 0; }
-  #scan-again { margin-top:12px; padding:8px 16px; border:none; border-radius:8px; background:#6a1b9a; color:#fff; cursor:pointer; font-weight:600; display:none; }
-  #logs { margin-top:12px; width:90%; max-width:640px; height:120px; overflow-y:auto; background:#222; color:#0f0; font-family:monospace; padding:8px; border-radius:8px; font-size:0.85rem; }
+body { font-family: 'Inter', sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; margin:0; padding:20px; background:#f0f4f8; }
+h1 { color:#6a1b9a; text-align:center; }
+#camera-container { position:relative; width:90%; max-width:640px; margin-top:10px; }
+video { width:100%; border-radius:12px; }
+canvas { display:none; }
+#result { margin-top:20px; background:#fff; padding:16px; border-radius:12px; width:90%; max-width:640px; box-shadow:0 4px 12px rgba(0,0,0,0.2); display:none; }
+#result p { margin:5px 0; }
+#scan-again { margin-top:12px; padding:8px 16px; border:none; border-radius:8px; background:#6a1b9a; color:#fff; cursor:pointer; font-weight:600; display:none; }
+#logs { margin-top:12px; width:90%; max-width:640px; height:120px; overflow-y:auto; background:#222; color:#0f0; font-family:monospace; padding:8px; border-radius:8px; font-size:0.85rem; }
 </style>
 </head>
 <body>
-<h1>Cattle Breed Live Scanner</h1>
+<h1>Cattle & Goat Live Scanner</h1>
 
 <div id="camera-container">
   <video id="video" autoplay playsinline></video>
   <canvas id="canvas"></canvas>
-  <div id="overlay-box"></div>
 </div>
 
 <div id="result">
@@ -53,10 +51,10 @@ const logs = document.getElementById("logs");
 
 let requestInProgress = false;
 
-// Class list for matching
-const CLASSES = ['Pandharpuri','barbari','black bengal','burgur','deoni','gir','guzerat','halikar','holstein','jaffarbadi','jersey','murrah','nili ravi','red sindhi','sahiwal','sirohi'];
+// CLASSES list
+const CLASSES = ['pandharpuri','barbari','black bengal','burgur','deoni','gir','guzerat','halikar','holstein','jaffarbadi','jersey','murrah','nili ravi','red sindhi','sahiwal','sirohi'];
 
-// Breed info dictionary (same as before)
+// Breed info
 const breedInfo = {
   "barbari": {fullName:"Barbari Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small-sized dual-purpose goat."},
   "burgur": {fullName:"Bargur Cow", origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
@@ -73,13 +71,11 @@ const breedInfo = {
   "red sindhi": {fullName:"Red Sindhi Cow", origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 L/day", description:"Good milk yield, heat-tolerant."},
   "sahiwal": {fullName:"Sahiwal Cow", origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 L/day", description:"Heat-tolerant dairy breed."},
   "pandharpuri": {fullName:"Pandharpuri Cow", origin:"Maharashtra, India", lifespan:"12-15 years", milkYield:"5-8 L/day", description:"Adapted to drought regions."},
- // Updated breed info for Sirohi
-"sirohi": {fullName:"Sirohi Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Good meat and milk-producing goat."},
-
+  "sirohi": {fullName:"Sirohi Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Good meat and milk-producing goat."},
   "Not Identified": {fullName:"Not Identified", origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."}
 };
 
-// Logging utility
+// Logging
 function log(msg){ logs.textContent += msg+"\n"; logs.scrollTop = logs.scrollHeight; }
 
 // Camera setup
@@ -91,13 +87,12 @@ async function startCamera(){
   }catch(e){ log("Camera error: "+e); }
 }
 
-// Capture frame as blob
+// Capture frame
 function captureFrame(){
-  const w=video.videoWidth;
-  const h=video.videoHeight;
-  canvas.width=w; canvas.height=h;
-  ctx.drawImage(video,0,0,w,h);
-  return new Promise(resolve=>canvas.toBlob(blob=>resolve(blob),"image/jpeg",0.9));
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  return new Promise(resolve => canvas.toBlob(blob => resolve(blob),"image/jpeg",0.9));
 }
 
 // Detection API
@@ -107,7 +102,7 @@ async function detectCattle(blob){
     form.append("file", blob, "frame.jpg");
     const res = await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST",body:form});
     const data = await res.json();
-    return (data.prediction === "LABEL_1") ? true : false;
+    return (data.prediction === "LABEL_1");
   }catch(e){ log("Detection API error: "+e.message); return false; }
 }
 
@@ -119,7 +114,6 @@ async function detectBreed(blob){
     const res = await fetch("https://Shivangguptasih-hf.hf.space/predict",{method:"POST",body:form});
     const data = await res.json();
     let label = data.prediction || "Not Identified";
-    // Normalize to lowercase and match with CLASSES
     label = label.toLowerCase();
     const match = CLASSES.find(c=>label.includes(c.replace(/ /g,''))) || "Not Identified";
     return match;
@@ -138,33 +132,35 @@ function showResult(breed){
   scanAgainBtn.style.display="inline-block";
 }
 
-// Live scanning
+// Live scanning: continuously until cattle detected
 async function liveScan(){
   if(requestInProgress) return;
   requestInProgress=true;
+
   const blob = await captureFrame();
   const detected = await detectCattle(blob);
-  log(`Cattle Detected: ${detected}`);
+  log(`Cattle detected: ${detected}`);
+
   if(detected){
     const breed = await detectBreed(blob);
-    log(`Breed: ${breed}`);
+    log(`Breed detected: ${breed}`);
     showResult(breed);
+    requestInProgress=false;
   } else {
-    showResult("Not Identified");
+    requestInProgress=false;
+    requestAnimationFrame(liveScan); // continue scanning
   }
-  requestInProgress=false;
 }
 
-// Scan again button
+// Scan again
 scanAgainBtn.addEventListener("click",()=>{
   resultDiv.style.display="none";
   scanAgainBtn.style.display="none";
   liveScan();
 });
 
-// Start camera and scan immediately
+// Start camera and scan
 startCamera().then(liveScan);
-
 </script>
 </body>
 </html>
