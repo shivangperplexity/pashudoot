@@ -55,7 +55,7 @@ const logs = document.getElementById("logs");
 let scanning = true;
 let requestInProgress = false;
 
-// Breed info mapping
+// All breed info
 const breedInfo = {
   "Barbari Goat": {fullName:"Barbari Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small-sized dual-purpose goat."},
   "Bargur Cow": {fullName:"Bargur Cow", origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
@@ -85,29 +85,70 @@ const breedInfo = {
   "Not Identified": {fullName:"Not Identified", origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."}
 };
 
-// Utility logging
+// Logging utility
 function log(msg){ logs.textContent += msg+"\n"; logs.scrollTop = logs.scrollHeight; }
 
 // Camera setup
 async function startCamera(){
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:"environment" }, audio:false });
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"environment" }, audio:false });
     video.srcObject = stream;
     await video.play();
-  } catch(e){
-    log("Camera error: "+e);
-  }
+  }catch(e){ log("Camera error: "+e); }
 }
 
-// Preprocess frame: crop black borders, resize, non-mirrored
+// Advanced preprocessing
 function preprocessFrame(){
   const w = video.videoWidth;
   const h = video.videoHeight;
   canvas.width = w;
   canvas.height = h;
-  ctx.drawImage(video, 0, 0, w, h); // normal orientation
+  ctx.drawImage(video, 0, 0, w, h);
+
+  // Get image data
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+
+  // Find bounding box of non-black pixels
+  let minX=w, minY=h, maxX=0, maxY=0;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const idx=(y*w+x)*4;
+      const r=data[idx], g=data[idx+1], b=data[idx+2];
+      if(r+g+b>30){
+        if(x<minX) minX=x;
+        if(y<minY) minY=y;
+        if(x>maxX) maxX=x;
+        if(y>maxY) maxY=y;
+      }
+    }
+  }
+  if(minX>maxX || minY>maxY){ minX=0; minY=0; maxX=w; maxY=h; }
+
+  const cropW = maxX-minX;
+  const cropH = maxY-minY;
+
+  // Temporary canvas
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = cropW;
+  tempCanvas.height = cropH;
+  const tctx = tempCanvas.getContext("2d");
+  tctx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+  // Resize for model
+  const finalCanvas = document.createElement("canvas");
+  const targetSize=224;
+  finalCanvas.width=targetSize;
+  finalCanvas.height=targetSize;
+  const fctx=finalCanvas.getContext("2d");
+  fctx.drawImage(tempCanvas, 0, 0, targetSize, targetSize);
+
+  // Update main canvas for display
+  ctx.clearRect(0,0,w,h);
+  ctx.drawImage(finalCanvas,0,0,w,h);
+
   return new Promise(resolve=>{
-    canvas.toBlob(blob=>resolve(blob),"image/jpeg",0.9);
+    finalCanvas.toBlob(blob=>resolve(blob),"image/jpeg",0.9);
   });
 }
 
@@ -158,13 +199,12 @@ async function liveScan(){
   const label = await detectCattle(blob);
   log(`Detection: ${label}`);
 
-  if(label === "LABEL_1"){
+  if(label==="LABEL_1"){
     const breed = await detectBreed(blob);
     log(`Breed detected: ${breed}`);
     showResult(breed);
     scanning=false; // freeze
   }
-
   requestInProgress=false;
   setTimeout(()=>requestAnimationFrame(liveScan),500);
 }
@@ -179,6 +219,7 @@ scanAgainBtn.addEventListener("click",()=>{
 
 // Start camera and scanning
 startCamera().then(liveScan);
+
 </script>
 </body>
 </html>
