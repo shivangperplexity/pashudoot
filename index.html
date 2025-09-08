@@ -4,15 +4,12 @@
   <meta charset="UTF-8">
   <title>PashuMitra – Cattle Breed Identifier</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; background: #f5f5f5; }
+    body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; }
     header { background: #4CAF50; color: white; padding: 1rem; font-size: 1.5rem; }
-    .container { margin: 2rem auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 600px; }
+    .container { margin: 2rem auto; padding: 2rem; max-width: 600px; border: 1px solid #ccc; border-radius: 8px; }
     .hidden { display: none; }
     #result { margin-top: 2rem; text-align: left; }
     #result h2 { margin-bottom: 0.5rem; }
-    .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; color: #333; z-index: 100; }
-    .progress { width: 80%; background: #ddd; border-radius: 10px; overflow: hidden; margin-top: 1rem; }
-    .progress-bar { height: 20px; width: 0; background: #4CAF50; transition: width 0.3s; }
     pre { text-align: left; background: #eee; padding: 1rem; border-radius: 8px; overflow-x: auto; }
   </style>
 </head>
@@ -21,10 +18,7 @@
   <div class="container">
     <h2>Upload Cattle Image</h2>
     <input type="file" id="imageUpload" accept="image/*"><br><br>
-    <div id="overlay" class="overlay hidden">
-      Processing... Please wait.
-      <div class="progress"><div id="progressBar" class="progress-bar"></div></div>
-    </div>
+
     <div id="result" class="hidden">
       <h2 id="header"></h2>
       <p id="origin"></p>
@@ -32,13 +26,12 @@
       <p id="milkYield"></p>
       <p id="description"></p>
     </div>
+
     <h3>Debug Info</h3>
     <pre id="debug"></pre>
   </div>
 
   <script>
-    const overlay = document.getElementById("overlay");
-    const progressBar = document.getElementById("progressBar");
     const result = document.getElementById("result");
     const header = document.getElementById("header");
     const origin = document.getElementById("origin");
@@ -47,44 +40,35 @@
     const description = document.getElementById("description");
     const debugBox = document.getElementById("debug");
 
-    // Breed info dictionary with mapping-compatible labels
+    // Breed info dictionary (compatible with your mapping)
     const breedInfo = {
-      "Barbari Goat": {fullName:"Barbari Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small dual-purpose goat."},
-      "Bargur Cow": {fullName:"Bargur Cow", origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
-      "Not Identified": {fullName:"Not Identified", origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."},
-      "Bhadawari Buffalo": {fullName:"Bhadawari Buffalo", origin:"U.P., India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Milk with high fat content."},
-      "Black Bengal Goat": {fullName:"Black Bengal Goat", origin:"West Bengal, India", lifespan:"8-12 years", milkYield:"1-2 L/day", description:"Popular for meat and skin."},
-      "Hallikar Cow": {fullName:"Hallikar Cow", origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 L/day", description:"Strong draught breed."},
-      "Hariana Cow": {fullName:"Hariana Cow", origin:"Haryana, India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Popular dual-purpose breed."},
-      "Holstein Friesian Cow": {fullName:"Holstein Friesian Cow", origin:"Netherlands", lifespan:"18-22 years", milkYield:"20-30 L/day", description:"Top dairy cow breed globally."},
-      "Jamunapari Goat": {fullName:"Jamunapari Goat", origin:"U.P., India", lifespan:"10-12 years", milkYield:"2-3 L/day", description:"Large goat with high yield."},
-      "Nagori Goat": {fullName:"Nagori Goat", origin:"Rajasthan, India", lifespan:"12-15 years", milkYield:"1-2 L/day", description:"Good draught goat breed."},
-      "Osmanabadi Goat": {fullName:"Osmanabadi Goat", origin:"Maharashtra, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Hardy and disease-resistant."},
-      "Tharparkar Cow": {fullName:"Tharparkar Cow", origin:"Rajasthan, India", lifespan:"15-18 years", milkYield:"10-12 L/day", description:"Dual-purpose drought-tolerant."},
-      "Deoni Cow": {fullName:"Deoni Cow", origin:"Maharashtra/Karnataka, India", lifespan:"12-15 years", milkYield:"3-8 L/day", description:"Dual-purpose cow breed."},
-      "Gir Cow": {fullName:"Gir Cow", origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 L/day", description:"High-quality A2 milk producer."},
-      "Guzerat Cow": {fullName:"Guzerat Cow", origin:"Gujarat, India", lifespan:"15-18 years", milkYield:"6-10 L/day", description:"Strong draught and dairy cow."},
-      "Jaffrabadi Buffalo": {fullName:"Jaffrabadi Buffalo", origin:"Gujarat, India", lifespan:"14-18 years", milkYield:"6-10 L/day", description:"Massive buffalo breed."},
-      "Jersey Cow": {fullName:"Jersey Cow", origin:"Jersey, UK", lifespan:"18-22 years", milkYield:"12-20 L/day", description:"Produces rich milk."},
-      "Mehsana Buffalo": {fullName:"Mehsana Buffalo", origin:"Gujarat, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"Famous dairy buffalo."},
-      "Murrah Buffalo": {fullName:"Murrah Buffalo", origin:"Haryana, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"Top dairy buffalo breed."},
-      "Nili Ravi Buffalo": {fullName:"Nili Ravi Buffalo", origin:"Punjab, Pakistan", lifespan:"14-18 years", milkYield:"7-12 L/day", description:"Famous for dairy qualities."},
-      "Pandharpuri Cow": {fullName:"Pandharpuri Cow", origin:"Maharashtra, India", lifespan:"12-15 years", milkYield:"5-8 L/day", description:"Adapted to drought areas."},
-      "Rathi Cow": {fullName:"Rathi Cow", origin:"Rajasthan, India", lifespan:"15-20 years", milkYield:"8-10 L/day", description:"Heat-tolerant dairy breed."},
-      "Red Sindhi Cow": {fullName:"Red Sindhi Cow", origin:"Sindh region", lifespan:"12-15 years", milkYield:"8-12 L/day", description:"Small, hardy and productive."},
-      "Sahiwal Cow": {fullName:"Sahiwal Cow", origin:"Punjab, India/Pakistan", lifespan:"12-15 years", milkYield:"12-18 L/day", description:"Best tropical dairy breed."},
-      "Sirohi Cow": {fullName:"Sirohi Cow", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Meat and milk producer."},
-      "Vechur Cow": {fullName:"Vechur Cow", origin:"Kerala, India", lifespan:"15-18 years", milkYield:"2-3 L/day", description:"World’s smallest cow breed."}
+      "Barbari Goat": {origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small dual-purpose goat."},
+      "Bargur Cow": {origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
+      "Not Identified": {origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."},
+      "Bhadawari Buffalo": {origin:"U.P., India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Milk with high fat content."},
+      "Black Bengal Goat": {origin:"West Bengal, India", lifespan:"8-12 years", milkYield:"1-2 L/day", description:"Popular for meat and skin."},
+      "Hallikar Cow": {origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 L/day", description:"Strong draught breed."},
+      "Hariana Cow": {origin:"Haryana, India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Popular dual-purpose breed."},
+      "Holstein Friesian Cow": {origin:"Netherlands", lifespan:"18-22 years", milkYield:"20-30 L/day", description:"Top dairy cow breed globally."},
+      "Jamunapari Goat": {origin:"U.P., India", lifespan:"10-12 years", milkYield:"2-3 L/day", description:"Large goat with high yield."},
+      "Nagori Goat": {origin:"Rajasthan, India", lifespan:"12-15 years", milkYield:"1-2 L/day", description:"Good draught goat breed."},
+      "Osmanabadi Goat": {origin:"Maharashtra, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Hardy and disease-resistant."},
+      "Tharparkar Cow": {origin:"Rajasthan, India", lifespan:"15-18 years", milkYield:"10-12 L/day", description:"Dual-purpose drought-tolerant."},
+      "Deoni Cow": {origin:"Maharashtra/Karnataka, India", lifespan:"12-15 years", milkYield:"3-8 L/day", description:"Dual-purpose cow breed."},
+      "Gir Cow": {origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 L/day", description:"High-quality A2 milk producer."},
+      "Guzerat Cow": {origin:"Gujarat, India", lifespan:"15-18 years", milkYield:"6-10 L/day", description:"Strong draught and dairy cow."},
+      "Jaffrabadi Buffalo": {origin:"Gujarat, India", lifespan:"14-18 years", milkYield:"6-10 L/day", description:"Massive buffalo breed."},
+      "Jersey Cow": {origin:"Jersey, UK", lifespan:"18-22 years", milkYield:"12-20 L/day", description:"Produces rich milk."},
+      "Mehsana Buffalo": {origin:"Gujarat, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"Famous dairy buffalo."},
+      "Murrah Buffalo": {origin:"Haryana, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"Top dairy buffalo breed."},
+      "Nili Ravi Buffalo": {origin:"Punjab, Pakistan", lifespan:"14-18 years", milkYield:"7-12 L/day", description:"Famous for dairy qualities."},
+      "Pandharpuri Cow": {origin:"Maharashtra, India", lifespan:"12-15 years", milkYield:"5-8 L/day", description:"Adapted to drought areas."},
+      "Rathi Cow": {origin:"Rajasthan, India", lifespan:"15-20 years", milkYield:"8-10 L/day", description:"Heat-tolerant dairy breed."},
+      "Red Sindhi Cow": {origin:"Sindh region", lifespan:"12-15 years", milkYield:"8-12 L/day", description:"Small, hardy and productive."},
+      "Sahiwal Cow": {origin:"Punjab, India/Pakistan", lifespan:"12-15 years", milkYield:"12-18 L/day", description:"Best tropical dairy breed."},
+      "Sirohi Cow": {origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Meat and milk producer."},
+      "Vechur Cow": {origin:"Kerala, India", lifespan:"15-18 years", milkYield:"2-3 L/day", description:"World’s smallest cow breed."}
     };
-
-    function runProgress() {
-      let width = 0;
-      progressBar.style.width = "0%";
-      const id = setInterval(() => {
-        if (width >= 100) { clearInterval(id); }
-        else { width += 5; progressBar.style.width = width + "%"; }
-      }, 100);
-    }
 
     function showDebug(title, data) {
       debugBox.textContent += `\n=== ${title} ===\n` + JSON.stringify(data, null, 2) + "\n";
@@ -94,8 +78,6 @@
       const file = e.target.files[0];
       if (!file) return;
 
-      overlay.classList.remove("hidden");
-      runProgress();
       debugBox.textContent = "";
 
       try {
@@ -133,8 +115,8 @@
             }
 
             if (topClass && topClass !== "Not Identified") {
-              const info = breedInfo[topClass] || {fullName: topClass, origin:"-", lifespan:"-", milkYield:"-", description:"No info available"};
-              header.textContent = `✅ Detected Cattle (Conf: ${(confidence * 100).toFixed(1)}%) → Breed: ${info.fullName} (${(topConf * 100).toFixed(1)}%)`;
+              const info = breedInfo[topClass] || {origin:"-", lifespan:"-", milkYield:"-", description:"No info available"};
+              header.textContent = `✅ Detected Cattle (Conf: ${(confidence * 100).toFixed(1)}%) → Breed: ${topClass} (${(topConf * 100).toFixed(1)}%)`;
               origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
               lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
               milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
@@ -155,7 +137,7 @@
         console.error("Error:", err);
         header.textContent = "⚠️ Error: Could not analyze.";
       } finally {
-        setTimeout(() => { overlay.classList.add("hidden"); result.classList.remove("hidden"); }, 500);
+        result.classList.remove("hidden");
       }
     });
   </script>
