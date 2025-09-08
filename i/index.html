@@ -142,7 +142,7 @@ async function detectBreed(blob){
     if(!blob) throw new Error("No blob");
     const form=new FormData();
     form.append("file",blob,"frame.jpg");
-    const res=await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:form});
+    const res=await fetch("https://Shivangguptasih-hf.hf.space/predict",{method:"POST",body:form});
     const data=await res.json();
     return data.prediction || "Not Identified";
   }catch(e){ log("Breed API error: "+e.message); return "Not Identified"; }
