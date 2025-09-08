@@ -51,8 +51,8 @@ const logs = document.getElementById("logs");
 
 let requestInProgress = false;
 
-// CLASSES list
-const CLASSES = ['pandharpuri','barbari','black bengal','burgur','deoni','gir','guzerat','halikar','holstein','jaffarbadi','jersey','murrah','nili ravi','red sindhi','sahiwal','sirohi'];
+// Correct class order
+const CLASSES = ['Pandharpuri','barbari','black bengal','burgur','deoni','gir','guzerat','halikar','holstein','jaffarbadi','jersey','murrah','nili ravi','red sindhi','sahiwal','sirohi'];
 
 // Breed info
 const breedInfo = {
@@ -105,18 +105,18 @@ async function detectCattle(blob){
   }catch(e){ log("Detection API error: "+e.message); return false; }
 }
 
-// Breed API (fixed exact match)
+// Breed API
 async function detectBreed(blob){
   try{
     const form = new FormData();
     form.append("file", blob, "frame.jpg");
     const res = await fetch("https://Shivangguptasih-hf.hf.space/predict",{method:"POST",body:form});
     const data = await res.json();
-    let label = (data.prediction || "Not Identified").toLowerCase().replace(/\s+/g,'');
-    for(const c of CLASSES){
-      if(label === c.replace(/\s+/g,'')) return c;
-    }
-    return "Not Identified";
+    let label = data.prediction || "Not Identified";
+    
+    // Map exact class from CLASSES
+    const match = CLASSES.find(c => c.toLowerCase() === label.toLowerCase()) || "Not Identified";
+    return match;
   }catch(e){ log("Breed API error: "+e.message); return "Not Identified"; }
 }
 
@@ -135,7 +135,7 @@ function showResult(breed){
 // Live scanning until detected
 async function liveScan(){
   if(requestInProgress) return;
-  requestInProgress = true;
+  requestInProgress=true;
 
   const blob = await captureFrame();
   const detected = await detectCattle(blob);
@@ -145,9 +145,9 @@ async function liveScan(){
     const breed = await detectBreed(blob);
     log(`Breed detected: ${breed}`);
     showResult(breed);
-    requestInProgress = false;
+    requestInProgress=false;
   } else {
-    requestInProgress = false;
+    requestInProgress=false;
     requestAnimationFrame(liveScan);
   }
 }
@@ -159,9 +159,8 @@ scanAgainBtn.addEventListener("click",()=>{
   liveScan();
 });
 
-// Start camera and scan
+// Start camera & scanning
 startCamera().then(liveScan);
-
 </script>
 </body>
 </html>
