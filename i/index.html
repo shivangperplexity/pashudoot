@@ -71,11 +71,10 @@ const breedInfo = {
   "red sindhi": {fullName:"Red Sindhi Cow", origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 L/day", description:"Good milk yield, heat-tolerant."},
   "sahiwal": {fullName:"Sahiwal Cow", origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 L/day", description:"Heat-tolerant dairy breed."},
   "pandharpuri": {fullName:"Pandharpuri Cow", origin:"Maharashtra, India", lifespan:"12-15 years", milkYield:"5-8 L/day", description:"Adapted to drought regions."},
-  "sirohi": {fullName:"Sirohi Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Good meat and milk-producing goat."},
-  "Not Identified": {fullName:"Red Sindhi Cow", origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."}
+  "sirohi": {fullName:"Sirohi Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Good meat and milk-producing goat."}
 };
 
-// Logging
+// Logging utility
 function log(msg){ logs.textContent += msg+"\n"; logs.scrollTop = logs.scrollHeight; }
 
 // Camera setup
@@ -87,33 +86,12 @@ async function startCamera(){
   }catch(e){ log("Camera error: "+e); }
 }
 
-// Preprocess frame: center crop, normalize brightness
-function preprocessFrame(){
-  const w = video.videoWidth;
-  const h = video.videoHeight;
-  const size = Math.min(w,h);
-  const sx = (w-size)/2, sy=(h-size)/2;
-
-  canvas.width = 224;
-  canvas.height = 224;
-  ctx.drawImage(video, sx, sy, size, size, 0, 0, 224, 224);
-
-  const imgData = ctx.getImageData(0,0,224,224);
-  const data = imgData.data;
-  let sum=0;
-  for(let i=0;i<data.length;i+=4){
-    sum += 0.299*data[i]+0.587*data[i+1]+0.114*data[i+2];
-  }
-  const avg = sum/(224*224);
-  const factor = 128/avg;
-  for(let i=0;i<data.length;i+=4){
-    data[i]=Math.min(255,data[i]*factor);
-    data[i+1]=Math.min(255,data[i+1]*factor);
-    data[i+2]=Math.min(255,data[i+2]*factor);
-  }
-  ctx.putImageData(imgData,0,0);
-
-  return new Promise(resolve=>canvas.toBlob(blob=>resolve(blob),"image/jpeg",0.9));
+// Capture frame
+function captureFrame(){
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  return new Promise(resolve => canvas.toBlob(blob => resolve(blob),"image/jpeg",0.9));
 }
 
 // Detection API
@@ -127,7 +105,7 @@ async function detectCattle(blob){
   }catch(e){ log("Detection API error: "+e.message); return false; }
 }
 
-// Breed API
+// Breed API with robust includes logic
 async function detectBreed(blob){
   try{
     const form = new FormData();
@@ -135,15 +113,20 @@ async function detectBreed(blob){
     const res = await fetch("https://Shivangguptasih-hf.hf.space/predict",{method:"POST",body:form});
     const data = await res.json();
     let label = data.prediction || "Not Identified";
-    label = label.toLowerCase();
-    const match = CLASSES.find(c=>label.includes(c.replace(/ /g,''))) || "Not Identified";
+
+    // normalize
+    const normalizedLabel = label.toLowerCase().replace(/\s+/g,'');
+    const match = CLASSES.find(c=> normalizedLabel.includes(c.replace(/\s+/g,'').toLowerCase())) || "Not Identified";
     return match;
-  }catch(e){ log("Breed API error: "+e.message); return "Not Identified"; }
+  }catch(e){ 
+    log("Breed API error: "+e.message); 
+    return "Not Identified"; 
+  }
 }
 
 // Show result
 function showResult(breed){
-  const info = breedInfo[breed] || breedInfo["Not Identified"];
+  const info = breedInfo[breed] || {fullName:"Not Identified", origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."};
   breedNameEl.textContent = `Breed: ${info.fullName}`;
   originEl.textContent = `Origin: ${info.origin}`;
   lifespanEl.textContent = `Lifespan: ${info.lifespan}`;
@@ -153,38 +136,24 @@ function showResult(breed){
   scanAgainBtn.style.display="inline-block";
 }
 
-// Live scanning with multiple-frame voting
+// Live scanning: freeze when cattle detected
 async function liveScan(){
   if(requestInProgress) return;
   requestInProgress=true;
 
-  const votes = {};
-  const framesToVote = 5;
-  let detectedCattle = false;
+  const blob = await captureFrame();
+  const detected = await detectCattle(blob);
+  log(`Cattle detected: ${detected}`);
 
-  for(let i=0;i<framesToVote;i++){
-    const blob = await preprocessFrame();
-    const detected = await detectCattle(blob);
-    log(`Cattle detected: ${detected}`);
-    if(detected){
-      detectedCattle = true;
-      const breed = await detectBreed(blob);
-      log(`Breed detected: ${breed}`);
-      votes[breed] = (votes[breed]||0)+1;
-    }
-    await new Promise(r=>setTimeout(r,200)); // small delay between frames
+  if(detected){
+    const breed = await detectBreed(blob);
+    log(`Breed detected: ${breed}`);
+    showResult(breed);
+    requestInProgress=false;
+  } else {
+    requestInProgress=false;
+    requestAnimationFrame(liveScan);
   }
-
-  let finalBreed="Not Identified";
-  if(detectedCattle){
-    let maxCount=0;
-    for(const b in votes){
-      if(votes[b]>maxCount){ maxCount=votes[b]; maxCount=votes[b]; finalBreed=b; }
-    }
-  }
-
-  showResult(finalBreed);
-  requestInProgress=false;
 }
 
 // Scan again
