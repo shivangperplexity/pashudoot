@@ -17,7 +17,7 @@ input[type="file"]{display:none;}
 .overlay.visible{display:flex;}
 .overlay img{transform:scale(2);margin-bottom:20px;}
 .progress-texts{display:flex;flex-direction:column;align-items:flex-start;gap:12px;position:relative;min-height:60px;}
-.progress-texts p{font-size:1.1rem;font-weight:600;opacity:0.4;display:flex;align-items:center;color:#444;transition:opacity 0.3s ease;}
+.progress-texts p{font-size:1.1rem;font-weight:600;opacity:0;display:flex;align-items:center;color:#444;transition:opacity 0.5s ease;}
 .progress-texts p.active{opacity:1;color:#6a1b9a;}
 .dot-container{display:flex;margin-left:6px;}
 .dot{width:6px;height:6px;margin:0 2px;background:#6a1b9a;border-radius:50%;animation:dotBounce 1s infinite;}
@@ -93,7 +93,7 @@ const breedInfo={
 "Guzerat Cow":{origin:"Gujarat, India",lifespan:"15-18 years",milkYield:"6-10 L/day",description:"Draught and dairy breed."},
 "Jaffrabadi Buffalo":{origin:"Gujarat, India",lifespan:"14-18 years",milkYield:"6-10 L/day",description:"Large buffalo, high milk yield."},
 "Jersey Cow":{origin:"Jersey Island, UK",lifespan:"18-22 years",milkYield:"12-20 L/day",description:"Rich milk producer."},
-"Mehsana Buffalo":{origin:"Gujarat, India",lifespan:"16-20 years",milkYield:"8-12 L/day",description:"Dairy breed with good milk."},
+"Mehsana Buffalo":{origin:"Gujarat, India",lifespan:"16-20 years",milkYield:"8-12 L/day",description:"Good dairy buffalo."},
 "Murrah Buffalo":{origin:"Haryana, India",lifespan:"16-20 years",milkYield:"8-12 L/day",description:"High milk-producing buffalo."},
 "Nili Ravi Buffalo":{origin:"Pakistan",lifespan:"14-18 years",milkYield:"7-12 L/day",description:"Famous dairy buffalo breed."},
 "Pandharpuri Cow":{origin:"Maharashtra, India",lifespan:"12-15 years",milkYield:"5-8 L/day",description:"Adapted to drought regions."},
@@ -107,7 +107,8 @@ const breedInfo={
 
 async function runSteps(){
     for(let i=0;i<steps.length;i++){
-        steps.forEach((s,j)=>s.classList.toggle("active",i===j));
+        steps.forEach((s,j)=>s.classList.remove("active"));
+        steps[i].classList.add("active");
         await new Promise(r=>setTimeout(r,1000));
     }
 }
@@ -120,7 +121,6 @@ async function handleFile(file){
     await runSteps();
 
     try{
-        // Detection API
         const formData=new FormData();
         formData.append("file",file);
         const detectResp=await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST",body:formData});
