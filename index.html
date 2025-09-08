@@ -6,63 +6,29 @@
 <title>Cattle Breed Identifier</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  body {
-    margin:0; padding:20px;
-    font-family: 'Inter', sans-serif;
-    min-height:100vh;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    background: linear-gradient(135deg, #fde2e4, #e2f0cb, #cddafd);
-  }
-  h1 {
-    font-size:2rem; text-align:center;
-    color:#6a1b9a; margin-bottom:25px;
-  }
-  .upload-container {
-    cursor:pointer;
-    width:90%; max-width:360px; height:200px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    border:2px dashed #6a1b9a; border-radius:16px;
-    background:rgba(255,255,255,0.6);
-    transition:0.3s all ease;
-  }
-  .upload-container:hover, .upload-container.dragover {
-    background:rgba(255,255,255,0.85);
-    box-shadow:0 8px 20px rgba(106,27,154,0.3);
-    transform:scale(1.04);
-  }
-  .upload-icon { width:50px;height:50px;margin-bottom:10px; stroke:#6a1b9a; }
-  .upload-text { font-size:1rem; font-weight:600; color:#333; }
-  input[type="file"]{display:none;}
+  body { min-height:100vh; margin:0; padding:20px; font-family:'Inter',sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(135deg, #fde2e4, #e2f0cb, #cddafd);}
+  h1 { font-size:2rem; margin-bottom:20px; font-weight:700; color:#6a1b9a; text-align:center; }
+  .upload-container { cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; width:90%; max-width:340px; height:200px; background:rgba(255,255,255,0.6); border:2px dashed #6a1b9a; border-radius:16px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+  .upload-container:hover, .upload-container.dragover { transform:scale(1.03); box-shadow:0 8px 16px rgba(106,27,154,0.3); background:rgba(255,255,255,0.8);}
+  .upload-icon { width:40px; height:40px; margin-bottom:8px; stroke:#6a1b9a; }
+  .upload-text { color:#333; font-size:1rem; font-weight:600; }
+  input[type="file"] { display:none; }
 
-  .overlay {
-    position:fixed; inset:0; background:rgba(255,255,255,0.7);
-    backdrop-filter:blur(4px); display:none;
-    flex-direction:column; align-items:center; justify-content:center;
-    z-index:1000; text-align:center; padding:20px;
-  }
-  .overlay.visible{display:flex;}
-  .overlay img{width:80px; margin-bottom:20px;}
-  .progress-text{font-weight:600; color:#6a1b9a; margin-bottom:10px;}
-  .progress-bar{width:80%; max-width:320px; height:10px; background:#ddd; border-radius:10px; overflow:hidden;}
-  .progress-fill{height:100%; width:0%; background:linear-gradient(90deg,#6a1b9a,#d81b60,#0288d1); border-radius:10px; transition:width 0.5s ease;}
+  .overlay { position:fixed; inset:0; background:rgba(255,255,255,0.7); backdrop-filter:blur(4px); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:1000; text-align:center; padding:20px;}
+  .overlay.visible { display:flex; }
+  .overlay img { transform:scale(2); margin-bottom:20px;}
+  .progress-texts { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:15px;}
+  .progress-texts p { font-size:1.1rem; font-weight:600; opacity:0.4; transition: all 0.5s ease; color:#444;}
+  .progress-texts p.active { opacity:1; color:#6a1b9a; font-size:1.2rem;}
+  .progress-bar { width:80%; max-width:320px; height:8px; background:#ddd; border-radius:6px; overflow:hidden; }
+  .progress-fill { height:100%; width:0%; background:linear-gradient(90deg, #6a1b9a, #d81b60, #0288d1); border-radius:6px; transition: width 0.8s ease; }
 
-  .result {
-    margin-top:25px; max-width:480px; width:100%;
-    background:#fff; border-radius:16px; box-shadow:0 6px 16px rgba(106,27,154,0.25);
-    padding:0; overflow:hidden; opacity:0; transform:translateY(20px);
-    transition:all 0.6s ease;
-  }
-  .result.visible{opacity:1; transform:translateY(0);}
-  .result-header{
-    background:linear-gradient(135deg,#6a1b9a,#d81b60); padding:14px; text-align:center;
-    color:#fff; font-weight:700; font-size:1.3rem;
-  }
-  .result-body{padding:18px 22px; display:flex; flex-direction:column; gap:8px;}
-  .result-body p{margin:0; font-weight:500; color:#333;}
-  .result-body strong{color:#6a1b9a;}
+  .result { margin-top:20px; max-width:500px; width:100%; background:#fff; padding:0; border-radius:16px; box-shadow:0 6px 16px rgba(106,27,154,0.25); opacity:0; transform:translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; overflow:hidden;}
+  .result.visible { opacity:1; transform:translateY(0);}
+  .result-header { background:linear-gradient(135deg, #6a1b9a, #d81b60); padding:12px; text-align:center; color:#fff; font-weight:700; font-size:1.4rem;}
+  .result-body { padding:16px 20px;}
+  .result-body p { font-size:1rem; margin:10px 0; font-weight:500; color:#333; }
+  .result-body strong { color:#6a1b9a; font-weight:700; }
 </style>
 </head>
 <body>
@@ -72,13 +38,18 @@
   <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
   </svg>
-  <span class="upload-text">Upload or Drag & Drop Image</span>
+  <span class="upload-text">Upload Image</span>
   <input type="file" accept="image/*" id="imageUpload">
 </label>
 
 <div id="overlay" class="overlay">
   <img src="analyze.gif" alt="Loading...">
-  <div class="progress-text">Processing...</div>
+  <div class="progress-texts">
+    <p id="step1">Uploading Image...</p>
+    <p id="step2">Running Model...</p>
+    <p id="step3">Analyzing...</p>
+    <p id="step4">Fetching Results...</p>
+  </div>
   <div class="progress-bar">
     <div id="progressFill" class="progress-fill"></div>
   </div>
@@ -96,6 +67,7 @@
 
 <script>
 const overlay = document.getElementById("overlay");
+const steps = [document.getElementById("step1"), document.getElementById("step2"), document.getElementById("step3"), document.getElementById("step4")];
 const progressFill = document.getElementById("progressFill");
 const result = document.getElementById("result");
 const header = document.getElementById("header");
@@ -106,18 +78,18 @@ const description = document.getElementById("description");
 const dropArea = document.getElementById("dropArea");
 const fileInput = document.getElementById("imageUpload");
 
-// Progress bar animation
-function runProgress() {
-  progressFill.style.width="0%";
-  let progress=0;
-  const interval=setInterval(()=>{
-    progress+=Math.random()*25;
-    if(progress>=100){progress=100; clearInterval(interval);}
-    progressFill.style.width=progress+"%";
-  },400);
+function showStep(index){
+  steps.forEach((s,i)=>s.classList.toggle("active", i===index));
+  progressFill.style.width = `${((index+1)/steps.length)*100}%`;
+}
+async function runProgress(){
+  for(let i=0;i<steps.length;i++){
+    showStep(i);
+    await new Promise(r=>setTimeout(r,800));
+  }
 }
 
-// All breeds info
+// Full breed info
 const breedInfo = {
 "Barbari Goat": {origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small dual-purpose goat."},
 "Bargur Cow": {origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
@@ -150,68 +122,58 @@ const breedInfo = {
 async function handleFile(file){
   overlay.classList.add("visible");
   runProgress();
-  result.classList.remove("visible");
-  header.textContent="";
-  origin.textContent=lifespan.textContent=milkYield.textContent=description.textContent="";
+  header.textContent = "";
+  origin.textContent = lifespan.textContent = milkYield.textContent = description.textContent = "";
 
   try{
     // Detection
-    const formData=new FormData();
-    formData.append("file",file);
-    const detectResp=await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST",body:formData});
-    const detectData=await detectResp.json().catch(()=>null);
-    const accepted=detectData?.prediction==="LABEL_1" || detectData?.prediction?.toLowerCase()==="accept";
+    const formData = new FormData();
+    formData.append("file", file);
+    const detectResp = await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST", body: formData});
+    const detectData = await detectResp.json().catch(()=>null);
+    const accepted = detectData?.prediction === "LABEL_1" || detectData?.prediction?.toLowerCase() === "accept";
 
     if(!accepted){
-      header.textContent="🚫 No Cattle Detected";
+      header.textContent = "🚫 No Cattle Detected";
       overlay.classList.remove("visible");
       result.classList.add("visible");
       return;
     }
 
     // Breed Classification
-    const breedForm=new FormData();
-    breedForm.append("file",file);
-    const breedResp=await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:breedForm});
-    const breedData=await breedResp.json().catch(()=>null);
-    
-    let topClass="Not Identified", topConf=0;
+    const breedForm = new FormData();
+    breedForm.append("file", file);
+    const breedResp = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:breedForm});
+    const breedData = await breedResp.json().catch(()=>null);
+
+    let topClass = "Not Identified", topConf = 0;
     if(breedData?.predictions){
-      const entries=Object.entries(breedData.predictions);
+      const entries = Object.entries(breedData.predictions);
       entries.sort((a,b)=>b[1]-a[1]);
-      topClass=entries[0][0]; topConf=entries[0][1];
+      topClass = entries[0][0];
+      topConf = entries[0][1];
     }
-    if(topClass.toLowerCase()==="beetal") topClass="Not Identified";
 
-    const info=breedInfo[topClass] || breedInfo["Not Identified"];
-    header.textContent=`✅ Cattle Detected → Breed: ${topClass} (${(topConf*100).toFixed(1)}%)`;
-    origin.innerHTML=`Origin: <strong>${info.origin}</strong>`;
-    lifespan.innerHTML=`Lifespan: <strong>${info.lifespan}</strong>`;
-    milkYield.innerHTML=`Milk Yield: <strong>${info.milkYield}</strong>`;
-    description.textContent=`About: ${info.description}`;
+    if(topClass.toLowerCase().includes("beetal")) topClass="Not Identified";
+    const info = breedInfo[topClass] || breedInfo["Not Identified"];
+    header.textContent = `✅ Cattle Detected → Breed: ${topClass} (${(topConf*100).toFixed(1)}%)`;
+    origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
+    lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
+    milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
+    description.textContent = `About: ${info.description}`;
 
-  } catch(err){
+  }catch(err){
     header.textContent="⚠️ Error: Could not analyze image.";
-  } finally{
+  }finally{
     overlay.classList.remove("visible");
     result.classList.add("visible");
   }
 }
 
-// File Input
-fileInput.addEventListener("change",(e)=>{
-  const file=e.target.files[0];
-  if(file) handleFile(file);
-});
-
-// Drag & Drop
-dropArea.addEventListener("dragover",(e)=>{ e.preventDefault(); dropArea.classList.add("dragover"); });
+fileInput.addEventListener("change",(e)=>{if(e.target.files[0]) handleFile(e.target.files[0]);});
+dropArea.addEventListener("dragover",(e)=>{e.preventDefault(); dropArea.classList.add("dragover");});
 dropArea.addEventListener("dragleave",()=>dropArea.classList.remove("dragover"));
-dropArea.addEventListener("drop",(e)=>{
-  e.preventDefault(); dropArea.classList.remove("dragover");
-  const file=e.dataTransfer.files[0];
-  if(file) handleFile(file);
-});
+dropArea.addEventListener("drop",(e)=>{e.preventDefault(); dropArea.classList.remove("dragover"); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);});
 </script>
 </body>
 </html>
