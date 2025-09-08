@@ -17,7 +17,7 @@
   }
   h1 { font-size:2rem; font-weight:700; color:#6a1b9a; text-align:center; margin:10px 0; }
   #cameraContainer { position: relative; width: 90%; max-width: 480px; margin-top:10px; }
-  video { width: 100%; height:auto; border-radius:16px; }
+  video { width: 100%; height:auto; border-radius:16px; transform: scaleX(-1); }
   #overlayBox {
     position: absolute;
     border: 3px solid #6a1b9a;
@@ -107,9 +107,16 @@ const breedInfo = {
 };
 
 function log(text){
-  logs.textContent += text+"\n";
+  logs.textContent += text + "\n";
   logs.scrollTop = logs.scrollHeight;
 }
+
+scanAgainBtn.addEventListener("click", ()=>{
+  scanning = true;
+  lastBreed = null;
+  result.style.display = "none";
+  overlayBox.style.display = "none";
+});
 
 function showResult(breedName){
   const info = breedInfo[breedName] || breedInfo["Not Identified"];
@@ -122,17 +129,10 @@ function showResult(breedName){
   overlayBox.style.display = "none";
 }
 
-scanAgainBtn.addEventListener("click", ()=>{
-  scanning = true;
-  lastBreed = null;
-  result.style.display = "none";
-});
-
 async function startCamera(){
   try{
     const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false});
     video.srcObject = stream;
-    video.facingMode = "environment";
     video.play();
     requestAnimationFrame(liveScan);
   }catch(e){
@@ -147,4 +147,44 @@ function getFrameBlob(){
   canvas.height = video.videoHeight * scale;
   const ctx = canvas.getContext("2d");
   ctx.drawImage(video,0,0,canvas.width,canvas.height);
-  return new Promise(resolve => canvas.toBlob(resolve,"image/jpeg",0.8
+  return new Promise(resolve => canvas.toBlob(resolve,"image/jpeg",0.8));
+}
+
+// Detection API call
+async function detectCattle(frameBlob){
+  try{
+    const form = new FormData();
+    form.append("file", frameBlob, "frame.jpg");
+    const resp = await fetch("https://rjsmoke00-cd.hf.space/predict", {method:"POST", body:form});
+    const data = await resp.json();
+    return data.prediction || "LABEL_0";
+  }catch(e){
+    log("Detection API error: "+e.message);
+    return "LABEL_0";
+  }
+}
+
+// Breed API call
+async function detectBreed(frameBlob){
+  try{
+    const form = new FormData();
+    form.append("file", frameBlob, "frame.jpg");
+    const resp = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict", {method:"POST", body:form});
+    const data = await resp.json();
+    return data.prediction || "Not Identified";
+  }catch(e){
+    log("Breed API error: "+e.message);
+    return "Not Identified";
+  }
+}
+
+// Live scanning loop
+async function liveScan(){
+  if(!scanning) return;
+  if(requestInProgress){
+    requestAnimationFrame(liveScan);
+    return;
+  }
+  requestInProgress = true;
+
+ 
