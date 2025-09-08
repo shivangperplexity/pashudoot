@@ -55,7 +55,7 @@ const logs = document.getElementById("logs");
 let scanning = true;
 let requestInProgress = false;
 
-// All breed info
+// Breed info mapping
 const breedInfo = {
   "Barbari Goat": {fullName:"Barbari Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small-sized dual-purpose goat."},
   "Bargur Cow": {fullName:"Bargur Cow", origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
@@ -99,50 +99,40 @@ async function startCamera(){
   }
 }
 
-// Preprocess frame: crop black borders, resize
+// Preprocess frame: crop black borders, resize, non-mirrored
 function preprocessFrame(){
   const w = video.videoWidth;
   const h = video.videoHeight;
   canvas.width = w;
   canvas.height = h;
-  ctx.drawImage(video,0,0,w,h);
-
-  // crop black edges (simple threshold method)
-  let imgData = ctx.getImageData(0,0,w,h);
-  // Optional: advanced preprocessing can go here
-
+  ctx.drawImage(video, 0, 0, w, h); // normal orientation
   return new Promise(resolve=>{
     canvas.toBlob(blob=>resolve(blob),"image/jpeg",0.9);
   });
 }
 
-// API calls
+// Detection API
 async function detectCattle(blob){
-  try {
-    const formData = new FormData();
-    formData.append("file", blob, "frame.jpg");
-    const res = await fetch("YOUR_DETECTION_API_URL",{method:"POST",body:formData});
+  try{
+    if(!blob) throw new Error("No blob created");
+    const form = new FormData();
+    form.append("file", blob, "frame.jpg");
+    const res = await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST", body:form});
     const data = await res.json();
-    log(`Detection response: ${JSON.stringify(data)}`);
-    return data.prediction; // "LABEL_0" or "LABEL_1"
-  } catch(e){
-    log("Detection API error: "+e);
-    return "LABEL_0";
-  }
+    return data.prediction || "LABEL_0";
+  }catch(e){ log("Detection API error: "+e.message); return "LABEL_0"; }
 }
 
+// Breed API
 async function detectBreed(blob){
-  try {
-    const formData = new FormData();
-    formData.append("file", blob, "frame.jpg");
-    const res = await fetch("YOUR_BREED_API_URL",{method:"POST",body:formData});
+  try{
+    if(!blob) throw new Error("No blob created");
+    const form = new FormData();
+    form.append("file", blob, "frame.jpg");
+    const res = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST", body:form});
     const data = await res.json();
-    log(`Breed response: ${JSON.stringify(data)}`);
-    return data.prediction; 
-  } catch(e){
-    log("Breed API error: "+e);
-    return "Not Identified";
-  }
+    return data.prediction || "Not Identified";
+  }catch(e){ log("Breed API error: "+e.message); return "Not Identified"; }
 }
 
 // Show breed info
@@ -174,6 +164,7 @@ async function liveScan(){
     showResult(breed);
     scanning=false; // freeze
   }
+
   requestInProgress=false;
   setTimeout(()=>requestAnimationFrame(liveScan),500);
 }
@@ -188,7 +179,6 @@ scanAgainBtn.addEventListener("click",()=>{
 
 // Start camera and scanning
 startCamera().then(liveScan);
-
 </script>
 </body>
 </html>
