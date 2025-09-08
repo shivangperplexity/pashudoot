@@ -187,4 +187,23 @@ async function liveScan(){
   }
   requestInProgress = true;
 
- 
+  const blob = await getFrameBlob();
+  const label = await detectCattle(blob);
+
+  log(`Detection result: ${label}`);
+
+  if(label === "LABEL_1"){
+    const breedName = await detectBreed(blob);
+    log(`Breed detected: ${breedName}`);
+    showResult(breedName);
+    scanning = false;
+  }
+
+  requestInProgress = false;
+  setTimeout(()=>requestAnimationFrame(liveScan), 500);
+}
+
+startCamera();
+</script>
+</body>
+</html>
