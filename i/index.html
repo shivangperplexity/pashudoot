@@ -113,10 +113,8 @@ async function detectBreed(blob){
     const res = await fetch("https://Shivangguptasih-hf.hf.space/predict",{method:"POST",body:form});
     const data = await res.json();
     let label = data.prediction || "Not Identified";
-
-    // normalize
     const normalizedLabel = label.toLowerCase().replace(/\s+/g,'');
-    const match = CLASSES.find(c=> normalizedLabel.includes(c.replace(/\s+/g,'').toLowerCase())) || "Not Identified";
+    const match = CLASSES.find(c=> normalizedLabel.includes(c.replace(/\s+/g,''))) || "Not Identified";
     return match;
   }catch(e){ 
     log("Breed API error: "+e.message); 
