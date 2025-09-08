@@ -6,11 +6,13 @@
 <title>Cattle Breed Live Scanner</title>
 <style>
   body { font-family:sans-serif; display:flex; flex-direction:column; align-items:center; background:#f0f0f0; margin:0; padding:10px;}
-  #cameraContainer { position: relative; width:90%; max-width:480px; }
-  video { width:100%; height:auto; border-radius:12px; transform: scaleX(-1); /* mirror for natural webcam view */ }
+  #cameraContainer { position: relative; width:90%; max-width:480px; display:flex; flex-direction:column; align-items:center;}
+  video, canvas { width:100%; height:auto; border-radius:12px; transform: scaleX(-1); }
   #logs { width:90%; max-width:480px; background:#222; color:#0f0; padding:8px; margin-top:10px; font-family:monospace; font-size:0.85rem; border-radius:12px; max-height:120px; overflow-y:auto; }
   #result { display:none; width:90%; max-width:480px; background:#fff; margin-top:10px; border-radius:12px; padding:12px; box-shadow:0 4px 12px rgba(0,0,0,0.2);}
   button { margin-top:8px; padding:8px 16px; border:none; border-radius:8px; background:#6a1b9a; color:#fff; cursor:pointer; }
+  #preprocessedContainer { width:90%; max-width:480px; margin-top:10px; text-align:center; }
+  #preprocessedContainer p { margin:4px 0; font-weight:600; }
 </style>
 </head>
 <body>
@@ -18,6 +20,12 @@
 <div id="cameraContainer">
   <video id="video" autoplay muted playsinline></video>
 </div>
+
+<div id="preprocessedContainer">
+  <p>Preprocessed Frame Sent:</p>
+  <canvas id="preprocessedCanvas"></canvas>
+</div>
+
 <div id="logs"></div>
 <div id="result">
   <h2 id="resultHeader"></h2>
@@ -38,6 +46,8 @@ const lifespan = document.getElementById("lifespan");
 const milkYield = document.getElementById("milkYield");
 const description = document.getElementById("description");
 const scanAgainBtn = document.getElementById("scanAgainBtn");
+const preprocessedCanvas = document.getElementById("preprocessedCanvas");
+const preCtx = preprocessedCanvas.getContext("2d");
 
 let scanning = true;
 let requestInProgress = false;
@@ -93,15 +103,15 @@ async function startCamera(){
   }catch(e){ log("Camera error: "+e.message);}
 }
 
-// Preprocess frame: resize + convert to Blob
+// Preprocess frame: resize + contrast adjustment + display
 function getFrameBlob(){
-  const canvas = document.createElement("canvas");
-  const width = 300; // resize width
+  const canvas = preprocessedCanvas;
+  const width = 300;
   const scale = width/video.videoWidth;
   canvas.width = width;
   canvas.height = video.videoHeight*scale;
   const ctx = canvas.getContext("2d");
-  // flip if necessary
+  ctx.filter = "contrast(1.2) brightness(1.1)";
   ctx.drawImage(video,0,0,canvas.width,canvas.height);
   return new Promise(resolve=>{
     canvas.toBlob(blob=>resolve(blob),"image/jpeg",0.8);
