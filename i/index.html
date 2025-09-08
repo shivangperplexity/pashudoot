@@ -3,83 +3,47 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cattle Breed Identifier - Live Scan</title>
+<title>Cattle Breed Live Scanner</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-body {
-  font-family: 'Inter', sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 0;
-  padding: 10px;
-  background: linear-gradient(135deg, #fde2e4, #e2f0cb, #cddafd);
-}
-h1 { text-align: center; color: #6a1b9a; margin-bottom: 10px; }
-#video-container { position: relative; max-width: 600px; width: 100%; }
-video, canvas { width: 100%; border-radius: 16px; display: block; }
-#overlay-box { position: absolute; border: 3px solid #d81b60; pointer-events: none; display: none; }
-#logs { margin-top: 10px; color: #333; font-weight: 600; min-height: 20px; text-align: center; }
-.status-dot { display: inline-block; animation: blink 1s infinite; }
-@keyframes blink { 0%, 100%{opacity:0} 50%{opacity:1} }
-
-#result {
-  margin-top: 15px;
-  width: 100%;
-  max-width: 600px;
-  background: #fff;
-  padding: 15px;
-  border-radius: 16px;
-  box-shadow: 0 6px 16px rgba(106,27,154,0.25);
-  display: none;
-}
-.result-header { font-weight: 700; font-size: 1.2rem; color: #6a1b9a; text-align: center; }
-.result-body p { margin: 6px 0; font-size: 1rem; }
-#scanAgain { margin-top: 10px; background:#6a1b9a;color:#fff;padding:10px 20px;border:none;border-radius:12px;font-weight:600;cursor:pointer; }
-@media(max-width:600px){ video, canvas { height:auto; } }
+  body { margin:0; font-family:'Inter',sans-serif; background:#f2f2f2; display:flex; flex-direction:column; align-items:center; padding:10px; }
+  h1 { text-align:center; color:#6a1b9a; margin:10px 0; font-size:2rem; }
+  #cameraContainer { position:relative; width:100%; max-width:640px; }
+  video { width:100%; border-radius:16px; transform:scaleX(-1); }
+  canvas { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+  #logs { width:100%; max-width:640px; background:#fff; padding:10px; margin-top:10px; border-radius:12px; height:80px; overflow-y:auto; font-family:monospace; font-size:0.9rem; }
+  #result { display:none; width:100%; max-width:640px; background:#fff; border-radius:16px; margin-top:10px; box-shadow:0 6px 16px rgba(106,27,154,0.25); }
+  .result-header { background:linear-gradient(135deg,#6a1b9a,#d81b60); color:#fff; font-weight:700; font-size:1.4rem; padding:12px; text-align:center; border-radius:16px 16px 0 0; }
+  .result-body { padding:16px 20px; }
+  .result-body p { font-size:1rem; margin:6px 0; font-weight:500; color:#333; }
+  .result-body strong { color:#6a1b9a; }
+  #scanAgain { margin:10px auto; display:block; padding:10px 20px; background:#6a1b9a; color:#fff; border:none; border-radius:12px; font-weight:600; cursor:pointer; font-size:1rem; }
+  .status-dot { display:inline-block; animation:dotBlink 1.5s infinite; margin-left:2px; }
+  .status-dot:nth-child(2){ animation-delay:0.3s; }
+  .status-dot:nth-child(3){ animation-delay:0.6s; }
+  @keyframes dotBlink{0%,20%{opacity:0}50%,70%{opacity:1}100%{opacity:0}}
 </style>
 </head>
 <body>
-
-<h1>Cattle Breed Identifier - Live Scan</h1>
-
-<div id="video-container">
-  <video id="video" autoplay muted playsinline></video>
-  <canvas id="canvas" style="display:none;"></canvas>
-  <div id="overlay-box"></div>
+<h1>Cattle Breed Live Scanner</h1>
+<div id="cameraContainer">
+  <video id="video" autoplay playsinline></video>
+  <canvas id="overlay"></canvas>
 </div>
-
-<div id="logs">Initializing camera...</div>
-
+<div id="logs"></div>
 <div id="result">
-  <div class="result-header" id="resultHeader"></div>
+  <div class="result-header" id="resHeader"></div>
   <div class="result-body">
-    <p id="origin"></p>
-    <p id="lifespan"></p>
-    <p id="milkYield"></p>
-    <p id="description"></p>
-    <button id="scanAgain">Scan Again</button>
+    <p id="resOrigin"></p>
+    <p id="resLifespan"></p>
+    <p id="resMilk"></p>
+    <p id="resDesc"></p>
   </div>
+  <button id="scanAgain">Scan Again</button>
 </div>
 
 <script>
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const overlayBox = document.getElementById("overlay-box");
-const logs = document.getElementById("logs");
-const resultDiv = document.getElementById("result");
-const resultHeader = document.getElementById("resultHeader");
-const origin = document.getElementById("origin");
-const lifespan = document.getElementById("lifespan");
-const milkYield = document.getElementById("milkYield");
-const description = document.getElementById("description");
-const scanAgainBtn = document.getElementById("scanAgain");
-
-let scanning = false;
-let lastRequestTime = 0;
-
-// Breed info mapping
+// --- breed info mapping ---
 const breedInfo = {
   "Barbari Goat": {fullName:"Barbari Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small-sized dual-purpose goat."},
   "Bargur Cow": {fullName:"Bargur Cow", origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
@@ -109,101 +73,141 @@ const breedInfo = {
   "Not Identified": {fullName:"Not Identified", origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."}
 };
 
-async function initCamera(){
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:false});
-    video.srcObject = stream;
-    scanning = true;
-    logs.innerHTML = "Camera started. Scanning...";
-    scanLoop();
-  }catch(e){
-    logs.innerHTML = "Error accessing camera: "+e.message;
-  }
+// --- DOM elements ---
+const video = document.getElementById("video");
+const canvas = document.getElementById("overlay");
+const ctx = canvas.getContext("2d");
+const logs = document.getElementById("logs");
+const resultDiv = document.getElementById("result");
+const resHeader = document.getElementById("resHeader");
+const resOrigin = document.getElementById("resOrigin");
+const resLifespan = document.getElementById("resLifespan");
+const resMilk = document.getElementById("resMilk");
+const resDesc = document.getElementById("resDesc");
+const scanAgainBtn = document.getElementById("scanAgain");
+
+let scanning = true;
+let requestInProgress = false;
+
+// --- log function ---
+function log(msg){
+  logs.innerHTML = msg;
+  logs.scrollTop = logs.scrollHeight;
 }
 
-function log(text){
-  logs.innerHTML = text;
+// --- setup camera ---
+async function startCamera(){
+  const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false});
+  video.srcObject = stream;
+  await video.play();
+  resizeCanvas();
 }
 
-function showResult(pred, blob){
-  scanning = false;
-  const info = breedInfo[pred] || breedInfo["Not Identified"];
-  resultHeader.textContent = `✅ Breed: ${info.fullName}`;
-  origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
-  lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
-  milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
-  description.textContent = info.description;
-
-  // freeze last frame
-  const url = URL.createObjectURL(blob);
-  video.style.display="none";
-  overlayBox.style.display="none";
-  canvas.style.display="block";
-  const img = new Image();
-  img.onload = ()=>ctx.drawImage(img,0,0,canvas.width,canvas.height);
-  img.src = url;
-  resultDiv.style.display="block";
-}
-
-scanAgainBtn.addEventListener("click",()=>{
-  video.style.display="block";
-  canvas.style.display="none";
-  resultDiv.style.display="none";
-  scanning = true;
-  logs.innerHTML = "Scanning...";
-  scanLoop();
-});
-
-let lastDetect = "";
-async function scanLoop(){
-  if(!scanning) return;
+function resizeCanvas(){
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
-
-  // gamma correction
-  const frame = ctx.getImageData(0,0,canvas.width,canvas.height);
-  const data = frame.data;
-  const gamma = 0.8;
-  for(let i=0;i<data.length;i+=4){
-    data[i] = 255*Math.pow(data[i]/255,gamma);
-    data[i+1] = 255*Math.pow(data[i+1]/255,gamma);
-    data[i+2] = 255*Math.pow(data[i+2]/255,gamma);
-  }
-  ctx.putImageData(frame,0,0);
-
-  const now = Date.now();
-  if(now - lastRequestTime > 500){
-    lastRequestTime = now;
-    canvas.toBlob(async (blob)=>{
-      log("Analyzing<span class='status-dot'>.</span><span class='status-dot'>.</span><span class='status-dot'>.</span>");
-      const formData = new FormData();
-      formData.append("file", blob, "frame.jpg");
-
-      try{
-        // 1st API: detection
-        const detectResp = await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST",body:formData});
-        const detectData = await detectResp.json();
-        if(detectData.prediction==="LABEL_0"){
-          log("Cattle not detected, continuing scan...");
-        } else if(detectData.prediction==="LABEL_1"){
-          log("Cattle detected, identifying breed...");
-          // 2nd API: breed
-          const breedResp = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:formData});
-          const breedData = await breedResp.json();
-          showResult(breedData.prediction || "Not Identified", blob);
-        }
-      }catch(e){ console.error(e); log("Error: "+e.message);}
-    },"image/jpeg");
-  }
-
-  requestAnimationFrame(scanLoop);
 }
 
-// init
-initCamera();
-</script>
+// --- draw overlay ---
+function drawBox(){
+  if(!scanning) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const w = canvas.width*0.8;
+  const h = canvas.height*0.6;
+  const x = (canvas.width-w)/2;
+  const y = (canvas.height-h)/2;
+  ctx.strokeStyle = "#6a1b9a";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(x,y,w,h);
+}
 
-</body>
-</html>
+// --- convert frame and send ---
+async function analyzeFrame(){
+  if(!scanning || requestInProgress) return;
+  requestInProgress = true;
+
+  // capture only box region
+  const w = canvas.width*0.8;
+  const h = canvas.height*0.6;
+  const x = (canvas.width-w)/2;
+  const y = (canvas.height-h)/2;
+
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = 224;
+  tempCanvas.height = 224;
+  const tCtx = tempCanvas.getContext("2d");
+  tCtx.drawImage(video, x, y, w, h, 0,0,224,224);
+
+  tempCanvas.toBlob(async (blob)=>{
+    const reader = new FileReader();
+    reader.onloadend = async ()=>{
+      const base64data = reader.result.split(',')[1];
+      log("Scanning<span class='status-dot'>.</span><span class='status-dot'>.</span><span class='status-dot'>.</span>");
+      try{
+        // --- detection ---
+        const detectResp = await fetch("https://rjsmoke00-cd.hf.space/run/predict",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({data:[base64data]})
+        });
+        const detectData = await detectResp.json();
+        const detectPred = detectData?.data?.[0] || "LABEL_0";
+
+        if(detectPred==="LABEL_0"){
+          requestInProgress = false;
+        } else {
+          // --- breed classification ---
+          const breedResp = await fetch("https://Shivangguptasih-breedclassification.hf.space/run/predict",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({data:[base64data]})
+          });
+          const breedData = await breedResp.json();
+          const breedPred = breedData?.data?.[0] || "Not Identified";
+          showResult(breedPred, tempCanvas.toDataURL());
+        }
+      }catch(e){
+        console.error(e);
+        log("Error: "+e.message);
+        requestInProgress = false;
+      }
+    };
+    reader.readAsDataURL(blob);
+  },"image/jpeg");
+}
+
+// --- show result ---
+function showResult(breedName, imgData){
+  scanning = false;
+  resultDiv.style.display = "block";
+  const info = breedInfo[breedName] || breedInfo["Not Identified"];
+  resHeader.textContent = `✅ Detected → Breed: ${info.fullName}`;
+  resOrigin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
+  resLifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
+  resMilk.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
+  resDesc.textContent = `About: ${info.description}`;
+
+  // freeze video frame
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const img = new Image();
+  img.src = imgData;
+  img.onload = ()=> ctx.drawImage(img,0,0,canvas.width,canvas.height);
+}
+
+// --- scan again ---
+scanAgainBtn.addEventListener("click",()=>{
+  scanning = true;
+  resultDiv.style.display = "none";
+  requestInProgress = false;
+});
+
+// --- main loop ---
+async function mainLoop(){
+  drawBox();
+  if(scanning) analyzeFrame();
+  requestAnimationFrame(mainLoop);
+}
+
+// --- start ---
+startCamera().then(()=>mainLoop());
+window.addEventListener("resize", resizeCanvas);
