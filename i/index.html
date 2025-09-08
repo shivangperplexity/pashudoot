@@ -5,50 +5,60 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cattle Breed Live Scanner</title>
 <style>
-  body { font-family: sans-serif; display:flex; flex-direction:column; align-items:center; padding:10px; background:#f0f0f0; }
-  video, canvas { border:1px solid #333; max-width:100%; }
-  #preprocessedCanvas { margin-top:10px; }
-  #logs { max-height:150px; overflow:auto; background:#222; color:#0f0; padding:5px; width:90%; margin-top:10px; font-family:monospace; font-size:0.85rem; }
-  #result { margin-top:10px; background:#fff; padding:10px; border-radius:8px; display:none; width:90%; max-width:400px; }
-  button { margin-top:10px; padding:8px 12px; font-size:1rem; }
+  body { font-family: 'Inter', sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; margin:0; padding:20px; background:#f0f4f8; }
+  h1 { color:#6a1b9a; text-align:center; }
+  #camera-container { position:relative; width:90%; max-width:640px; margin-top:10px; }
+  video { width:100%; transform:none; border-radius:12px; }
+  canvas { display:none; }
+  #overlay-box { position:absolute; border:3px solid #d81b60; top:0; left:0; width:0; height:0; pointer-events:none; }
+  #result { margin-top:20px; background:#fff; padding:16px; border-radius:12px; width:90%; max-width:640px; box-shadow:0 4px 12px rgba(0,0,0,0.2); display:none; }
+  #result p { margin:5px 0; }
+  #scan-again { margin-top:12px; padding:8px 16px; border:none; border-radius:8px; background:#6a1b9a; color:#fff; cursor:pointer; font-weight:600; display:none; }
+  #logs { margin-top:12px; width:90%; max-width:640px; height:120px; overflow-y:auto; background:#222; color:#0f0; font-family:monospace; padding:8px; border-radius:8px; font-size:0.85rem; }
 </style>
 </head>
 <body>
-
 <h1>Cattle Breed Live Scanner</h1>
-<video id="video" autoplay muted playsinline></video>
-<canvas id="preprocessedCanvas"></canvas>
-<div id="logs"></div>
+
+<div id="camera-container">
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
+  <div id="overlay-box"></div>
+</div>
 
 <div id="result">
-  <h3 id="resultHeader"></h3>
+  <h3 id="breed-name"></h3>
   <p id="origin"></p>
   <p id="lifespan"></p>
   <p id="milkYield"></p>
   <p id="description"></p>
-  <button id="scanAgain">Scan Again</button>
 </div>
+
+<button id="scan-again">Scan Again</button>
+
+<div id="logs"></div>
 
 <script>
 const video = document.getElementById("video");
-const preprocessedCanvas = document.getElementById("preprocessedCanvas");
-const preCtx = preprocessedCanvas.getContext("2d");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const overlayBox = document.getElementById("overlay-box");
+const resultDiv = document.getElementById("result");
+const breedNameEl = document.getElementById("breed-name");
+const originEl = document.getElementById("origin");
+const lifespanEl = document.getElementById("lifespan");
+const milkYieldEl = document.getElementById("milkYield");
+const descriptionEl = document.getElementById("description");
+const scanAgainBtn = document.getElementById("scan-again");
 const logs = document.getElementById("logs");
-const result = document.getElementById("result");
-const resultHeader = document.getElementById("resultHeader");
-const origin = document.getElementById("origin");
-const lifespan = document.getElementById("lifespan");
-const milkYield = document.getElementById("milkYield");
-const description = document.getElementById("description");
-const scanAgainBtn = document.getElementById("scanAgain");
 
 let scanning = true;
 let requestInProgress = false;
 
+// All breed info
 const breedInfo = {
   "Barbari Goat": {fullName:"Barbari Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small-sized dual-purpose goat."},
   "Bargur Cow": {fullName:"Bargur Cow", origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
-  "Not Identified": {fullName:"Not Identified", origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."},
   "Bhadawari Buffalo": {fullName:"Bhadawari Buffalo", origin:"U.P., India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Milk with high fat content."},
   "Black Bengal Goat": {fullName:"Black Bengal Goat", origin:"West Bengal, India", lifespan:"8-12 years", milkYield:"1-2 L/day", description:"Known for meat and skin quality."},
   "Hallikar Cow": {fullName:"Hallikar Cow", origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 L/day", description:"Strong draught breed."},
@@ -71,118 +81,114 @@ const breedInfo = {
   "Red Sindhi Cow": {fullName:"Red Sindhi Cow", origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 L/day", description:"Good milk yield, heat-tolerant."},
   "Sahiwal Cow": {fullName:"Sahiwal Cow", origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 L/day", description:"Heat-tolerant dairy breed."},
   "Sirohi Cow": {fullName:"Sirohi Cow", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Good meat and milk producer."},
-  "Vechur Cow": {fullName:"Vechur Cow", origin:"Kerala, India", lifespan:"15-18 years", milkYield:"2-3 L/day", description:"Smallest cow breed, hardy."}
+  "Vechur Cow": {fullName:"Vechur Cow", origin:"Kerala, India", lifespan:"15-18 years", milkYield:"2-3 L/day", description:"Smallest cow breed, hardy."},
+  "Not Identified": {fullName:"Not Identified", origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."}
 };
 
-// logs
-function log(msg){
-  logs.textContent += msg+"\n";
-  logs.scrollTop = logs.scrollHeight;
-}
+// Utility logging
+function log(msg){ logs.textContent += msg+"\n"; logs.scrollTop = logs.scrollHeight; }
 
-// start camera
+// Camera setup
 async function startCamera(){
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio:false });
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:"environment" }, audio:false });
     video.srcObject = stream;
-    video.onloadedmetadata = ()=> video.play();
+    await video.play();
   } catch(e){
-    console.error("Camera error:", e);
     log("Camera error: "+e);
   }
 }
-startCamera();
 
-// preprocess frame
-async function getFrameBlob(){
-  const tmpCanvas = document.createElement("canvas");
-  const tmpCtx = tmpCanvas.getContext("2d");
-  tmpCanvas.width = video.videoWidth;
-  tmpCanvas.height = video.videoHeight;
-  tmpCtx.drawImage(video,0,0);
-  const imgData = tmpCtx.getImageData(0,0,tmpCanvas.width,tmpCanvas.height).data;
+// Preprocess frame: crop black borders, resize
+function preprocessFrame(){
+  const w = video.videoWidth;
+  const h = video.videoHeight;
+  canvas.width = w;
+  canvas.height = h;
+  ctx.drawImage(video,0,0,w,h);
 
-  // crop black borders
-  let minX=tmpCanvas.width, minY=tmpCanvas.height, maxX=0, maxY=0;
-  for(let y=0;y<tmpCanvas.height;y++){
-    for(let x=0;x<tmpCanvas.width;x++){
-      const i=(y*tmpCanvas.width+x)*4;
-      if(imgData[i]+imgData[i+1]+imgData[i+2]>30){ // non-black
-        if(x<minX) minX=x;
-        if(x>maxX) maxX=x;
-        if(y<minY) minY=y;
-        if(y>maxY) maxY=y;
-      }
-    }
-  }
-  const cw=maxX-minX, ch=maxY-minY;
-  tmpCanvas.width=cw; tmpCanvas.height=ch;
-  tmpCtx.drawImage(video,minX,minY,cw,ch,0,0,cw,ch);
+  // crop black edges (simple threshold method)
+  let imgData = ctx.getImageData(0,0,w,h);
+  // Optional: advanced preprocessing can go here
 
-  // resize
-  const outCanvas=document.createElement("canvas");
-  const scale=320/cw;
-  outCanvas.width=320; outCanvas.height=ch*scale;
-  const outCtx=outCanvas.getContext("2d");
-  outCtx.filter="contrast(1.2) brightness(1.1)";
-  outCtx.drawImage(tmpCanvas,0,0,outCanvas.width,outCanvas.height);
-
-  preprocessedCanvas.width=outCanvas.width;
-  preprocessedCanvas.height=outCanvas.height;
-  preCtx.drawImage(outCanvas,0,0);
-
-  return new Promise(resolve=>outCanvas.toBlob(resolve,"image/jpeg"));
+  return new Promise(resolve=>{
+    canvas.toBlob(blob=>resolve(blob),"image/jpeg",0.9);
+  });
 }
 
-// simulate detection API
+// API calls
 async function detectCattle(blob){
-  await new Promise(r=>setTimeout(r,200));
-  return "LABEL_1"; // only proceed if LABEL_1
+  try {
+    const formData = new FormData();
+    formData.append("file", blob, "frame.jpg");
+    const res = await fetch("YOUR_DETECTION_API_URL",{method:"POST",body:formData});
+    const data = await res.json();
+    log(`Detection response: ${JSON.stringify(data)}`);
+    return data.prediction; // "LABEL_0" or "LABEL_1"
+  } catch(e){
+    log("Detection API error: "+e);
+    return "LABEL_0";
+  }
 }
 
-// simulate breed API
 async function detectBreed(blob){
-  await new Promise(r=>setTimeout(r,300));
-  return "Barbari Goat"; // pretend breed
+  try {
+    const formData = new FormData();
+    formData.append("file", blob, "frame.jpg");
+    const res = await fetch("YOUR_BREED_API_URL",{method:"POST",body:formData});
+    const data = await res.json();
+    log(`Breed response: ${JSON.stringify(data)}`);
+    return data.prediction; 
+  } catch(e){
+    log("Breed API error: "+e);
+    return "Not Identified";
+  }
 }
 
-// show result
+// Show breed info
 function showResult(breed){
-  const info=breedInfo[breed]||breedInfo["Not Identified"];
-  resultHeader.textContent=`✅ Breed Detected: ${breed}`;
-  origin.textContent=`Origin: ${info.origin}`;
-  lifespan.textContent=`Lifespan: ${info.lifespan}`;
-  milkYield.textContent=`Milk Yield: ${info.milkYield}`;
-  description.textContent=`About: ${info.description}`;
-  result.style.display="block";
+  const info = breedInfo[breed] || breedInfo["Not Identified"];
+  breedNameEl.textContent = `Breed: ${info.fullName}`;
+  originEl.textContent = `Origin: ${info.origin}`;
+  lifespanEl.textContent = `Lifespan: ${info.lifespan}`;
+  milkYieldEl.textContent = `Milk Yield: ${info.milkYield}`;
+  descriptionEl.textContent = `About: ${info.description}`;
+  resultDiv.style.display="block";
+  scanAgainBtn.style.display="inline-block";
 }
 
-// scan again
-scanAgainBtn.addEventListener("click",()=>{
-  result.style.display="none";
-  scanning=true;
-});
-
-// live scan
+// Live scanning loop
 async function liveScan(){
   if(!scanning || requestInProgress){
     requestAnimationFrame(liveScan);
     return;
   }
   requestInProgress=true;
-  const blob=await getFrameBlob();
-  const label=await detectCattle(blob);
+  const blob = await preprocessFrame();
+  const label = await detectCattle(blob);
   log(`Detection: ${label}`);
-  if(label==="LABEL_1"){
-    const breed=await detectBreed(blob);
+
+  if(label === "LABEL_1"){
+    const breed = await detectBreed(blob);
     log(`Breed detected: ${breed}`);
     showResult(breed);
-    scanning=false; // freeze frame
+    scanning=false; // freeze
   }
   requestInProgress=false;
   setTimeout(()=>requestAnimationFrame(liveScan),500);
 }
-liveScan();
+
+// Scan again
+scanAgainBtn.addEventListener("click",()=>{
+  scanning=true;
+  resultDiv.style.display="none";
+  scanAgainBtn.style.display="none";
+  overlayBox.style.width=overlayBox.style.height="0";
+});
+
+// Start camera and scanning
+startCamera().then(liveScan);
+
 </script>
 </body>
 </html>
