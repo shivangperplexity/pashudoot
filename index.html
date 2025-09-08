@@ -125,13 +125,33 @@ const milkYield = document.getElementById("milkYield");
 const description = document.getElementById("description");
 const debugBox = document.getElementById("debug");
 
+// Breed mapping with full names & info
 const breedInfo = {
-  "hallikar": {origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 liters/day", description:"Known for strength and draught ability."},
-  "deoni": {origin:"Maharashtra, Karnataka, Andhra Pradesh", lifespan:"12-15 years", milkYield:"3-8 liters/day", description:"Dual-purpose breed with good resistance."},
-  "gir": {origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 liters/day", description:"Famous for high-quality A2 milk."},
-  "jersey": {origin:"Jersey Island, UK", lifespan:"18-22 years", milkYield:"12-20 liters/day", description:"Popular dairy breed producing rich milk."},
-  "red sindhi": {origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 liters/day", description:"Good yield and adaptability."},
-  "sahiwal": {origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 liters/day", description:"Heat-tolerant and productive."}
+  "barbari": {fullName:"Barbari Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 liters/day", description:"Small-sized dual-purpose goat."},
+  "jamunapari": {fullName:"Jamunapari Goat", origin:"U.P., India", lifespan:"10-12 years", milkYield:"2-3 liters/day", description:"Large goat with high milk yield."},
+  "black bengal": {fullName:"Black Bengal Goat", origin:"West Bengal, India", lifespan:"8-12 years", milkYield:"1-2 liters/day", description:"Known for meat and skin quality."},
+  "osmanabadi": {fullName:"Osmanabadi Goat", origin:"Maharashtra, India", lifespan:"10-12 years", milkYield:"1-2 liters/day", description:"Hardy and disease-resistant goat."},
+  "sirohi": {fullName:"Sirohi Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 liters/day", description:"Good meat and milk producer."},
+  "vechur": {fullName:"Vechur Cow", origin:"Kerala, India", lifespan:"15-18 years", milkYield:"2-3 liters/day", description:"Smallest cow breed, hardy."},
+  "murrah": {fullName:"Murrah Buffalo", origin:"Haryana, India", lifespan:"16-20 years", milkYield:"8-12 liters/day", description:"High milk-producing buffalo."},
+  "jaffrabadi": {fullName:"Jaffrabadi Buffalo", origin:"Gujarat, India", lifespan:"14-18 years", milkYield:"6-10 liters/day", description:"Large buffalo, high milk yield."},
+  "pandharpuri": {fullName:"Pandharpuri Buffalo", origin:"Maharashtra, India", lifespan:"12-15 years", milkYield:"5-8 liters/day", description:"Adapted to drought regions."},
+  "nili ravi": {fullName:"Nili Ravi Buffalo", origin:"Pakistan", lifespan:"14-18 years", milkYield:"7-12 liters/day", description:"Famous dairy buffalo breed."},
+  "hallikar": {fullName:"Hallikar Cow", origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 liters/day", description:"Strong draught breed."},
+  "hariana": {fullName:"Hariana Cow", origin:"Haryana, India", lifespan:"16-20 years", milkYield:"6-10 liters/day", description:"Dairy breed with high milk yield."},
+  "holstein_friesian": {fullName:"Holstein Friesian Cow", origin:"Netherlands", lifespan:"18-22 years", milkYield:"20-30 liters/day", description:"World's leading dairy breed."},
+  "nagori": {fullName:"Nagori Cow", origin:"Rajasthan, India", lifespan:"15-18 years", milkYield:"5-8 liters/day", description:"Dual-purpose draught and milk breed."},
+  "rathi": {fullName:"Rathi Cow", origin:"Rajasthan, India", lifespan:"15-20 years", milkYield:"8-10 liters/day", description:"Heat-tolerant dairy cow."},
+  "red sindhi": {fullName:"Red Sindhi Cow", origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 liters/day", description:"Good milk yield, heat-tolerant."},
+  "tharparkar": {fullName:"Tharparkar Cow", origin:"Rajasthan, India", lifespan:"15-18 years", milkYield:"10-12 liters/day", description:"Dual-purpose heat-tolerant cow."},
+  "gir": {fullName:"Gir Cow", origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 liters/day", description:"High-quality A2 milk producer."},
+  "guzerat": {fullName:"Guzerat Cow", origin:"Gujarat, India", lifespan:"15-18 years", milkYield:"6-10 liters/day", description:"Draught and dairy breed."},
+  "jersey": {fullName:"Jersey Cow", origin:"Jersey Island, UK", lifespan:"18-22 years", milkYield:"12-20 liters/day", description:"Rich milk producer."},
+  "mehsana": {fullName:"Mehsana Buffalo", origin:"Gujarat, India", lifespan:"16-20 years", milkYield:"8-12 liters/day", description:"Good dairy buffalo."},
+  "sahiwal": {fullName:"Sahiwal Cow", origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 liters/day", description:"Heat-tolerant dairy breed."},
+  "deoni": {fullName:"Deoni Cow", origin:"Maharashtra, Karnataka, Andhra Pradesh", lifespan:"12-15 years", milkYield:"3-8 liters/day", description:"Dual-purpose cow breed."},
+  "bargur": {fullName:"Bargur Cow", origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 liters/day", description:"Draught breed from hilly areas."},
+  "bhadawari": {fullName:"Bhadawari Buffalo", origin:"U.P., India", lifespan:"16-20 years", milkYield:"6-10 liters/day", description:"Milk-producing buffalo breed."}
 };
 
 function showStep(index) {
@@ -160,7 +180,7 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
   debugBox.textContent = ""; 
 
   try {
-    // STEP 1: Detection API
+    // STEP 1: Cattle Detection
     const formData = new FormData();
     formData.append("files", file);
 
@@ -173,11 +193,11 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
     showDebug("Detection API Response", detectData);
 
     if(detectData && detectData.length > 0 && detectData[0].decision === "accept"){
-      // STEP 2: Breed Classification
+      // STEP 2: Breed Classification using new API
       const breedForm = new FormData();
       breedForm.append("file", file);
 
-      const breedResponse = await fetch("https://shivangggg-cow-breed-classifier.hf.space/predict", { 
+      const breedResponse = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict", { 
         method: "POST", 
         body: breedForm 
       });
@@ -196,20 +216,25 @@ document.getElementById("imageUpload").addEventListener("change", async (e)=>{
           }
         }
 
-        if (topClass) {
-          const key = topClass.toLowerCase();
-          const formattedBreed = key.charAt(0).toUpperCase() + key.slice(1);
-          const info = breedInfo[key] || {origin:"-", lifespan:"-", milkYield:"-", description:"No info available"};
+        if (topClass && topClass.toLowerCase() !== "beetal") {
+          const key = topClass.toLowerCase().replace(/ /g, "_");
+          const info = breedInfo[key] || {fullName: topClass, origin:"-", lifespan:"-", milkYield:"-", description:"No info available"};
 
-          header.textContent = `Identified Breed: ${formattedBreed} (${(topConf*100).toFixed(1)}%)`;
+          header.textContent = `Identified Breed: ${info.fullName} (${(topConf*100).toFixed(1)}%)`;
           origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
           lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
           milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
           description.textContent = `About: ${info.description}`;
+        } else {
+          header.textContent = "🚫 Not Classified (Beetal)";
+          origin.textContent = "";
+          lifespan.textContent = "";
+          milkYield.textContent = "";
+          description.textContent = "";
         }
       }
     } else {
-      // Show detection result if rejected
+      // Detection rejected
       const res = detectData[0];
       header.textContent = `🚫 No Cattle Detected`;
       origin.textContent = `Decision: ${res?.decision}`;
