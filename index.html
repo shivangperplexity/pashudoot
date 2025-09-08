@@ -16,11 +16,14 @@ input[type="file"]{display:none;}
 .overlay{position:fixed;inset:0;background:rgba(255,255,255,0.7);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:1000;text-align:center;padding:20px;}
 .overlay.visible{display:flex;}
 .overlay img{transform:scale(2);margin-bottom:20px;}
-.progress-texts{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:15px;position:relative;height:30px;}
-.progress-texts p{position:absolute;font-size:1.1rem;font-weight:600;opacity:0;transition:opacity 0.5s ease,color 0.5s ease;font-weight:600;color:#444;}
+.progress-texts{display:flex;flex-direction:column;align-items:flex-start;gap:12px;position:relative;min-height:60px;}
+.progress-texts p{font-size:1.1rem;font-weight:600;opacity:0.4;display:flex;align-items:center;color:#444;transition:opacity 0.3s ease;}
 .progress-texts p.active{opacity:1;color:#6a1b9a;}
-.progress-bar{width:80%;max-width:320px;height:8px;background:#ddd;border-radius:6px;overflow:hidden;margin-top:40px;}
-.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#6a1b9a,#d81b60,#0288d1);border-radius:6px;transition:width 0.5s ease;}
+.dot-container{display:flex;margin-left:6px;}
+.dot{width:6px;height:6px;margin:0 2px;background:#6a1b9a;border-radius:50%;animation:dotBounce 1s infinite;}
+.dot:nth-child(2){animation-delay:0.2s;}
+.dot:nth-child(3){animation-delay:0.4s;}
+@keyframes dotBounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-8px);}}
 .result{margin-top:20px;max-width:500px;width:100%;background:#fff;padding:0;border-radius:16px;box-shadow:0 6px 16px rgba(106,27,154,0.25);opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease;overflow:hidden;}
 .result.visible{opacity:1;transform:translateY(0);}
 .result-header{background:linear-gradient(135deg,#6a1b9a,#d81b60);padding:12px;text-align:center;color:#fff;font-weight:700;font-size:1.4rem;}
@@ -44,12 +47,11 @@ input[type="file"]{display:none;}
 <div id="overlay" class="overlay">
 <img src="analyze.gif" alt="Loading...">
 <div class="progress-texts">
-<p id="step1">Uploading Image...</p>
-<p id="step2">Running Model...</p>
-<p id="step3">Analyzing...</p>
-<p id="step4">Fetching Results...</p>
+<p id="step1">Uploading Image<span class="dot-container"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></p>
+<p id="step2">Running Model<span class="dot-container"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></p>
+<p id="step3">Analyzing<span class="dot-container"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></p>
+<p id="step4">Fetching Results<span class="dot-container"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></p>
 </div>
-<div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
 </div>
 
 <div id="result" class="result">
@@ -65,7 +67,6 @@ input[type="file"]{display:none;}
 <script>
 const overlay=document.getElementById("overlay");
 const steps=[document.getElementById("step1"),document.getElementById("step2"),document.getElementById("step3"),document.getElementById("step4")];
-const progressFill=document.getElementById("progressFill");
 const result=document.getElementById("result");
 const header=document.getElementById("header");
 const origin=document.getElementById("origin");
@@ -104,16 +105,13 @@ const breedInfo={
 "Not Identified":{origin:"-",lifespan:"-",milkYield:"-",description:"Breed could not be identified."}
 };
 
-// helper to animate steps
-async function runSteps() {
+async function runSteps(){
     for(let i=0;i<steps.length;i++){
         steps.forEach((s,j)=>s.classList.toggle("active",i===j));
-        progressFill.style.width=`${((i+1)/steps.length)*100}%`;
         await new Promise(r=>setTimeout(r,1000));
     }
 }
 
-// handle file upload
 async function handleFile(file){
     overlay.classList.add("visible");
     result.classList.remove("visible");
@@ -132,7 +130,6 @@ async function handleFile(file){
         if(detectLabel==="LABEL_0"){ detectLabel="Not Identified"; }
         else if(detectLabel==="LABEL_1"){ detectLabel="Detected"; }
 
-        // Only call breed API if detected
         if(detectLabel==="Detected"){
             const breedForm=new FormData();
             breedForm.append("file",file);
@@ -144,7 +141,6 @@ async function handleFile(file){
             }catch(e){ detectLabel="Not Identified"; }
         }
 
-        // Display results
         const info=breedInfo[detectLabel]||breedInfo["Not Identified"];
         if(detectLabel==="Not Identified"){
             header.textContent="🚫 No Cattle Detected";
@@ -165,13 +161,11 @@ async function handleFile(file){
     }
 }
 
-// input change
 fileInput.addEventListener("change",(e)=>{
     const file=e.target.files[0];
     if(file) handleFile(file);
 });
 
-// drag & drop
 dropArea.addEventListener("dragover",(e)=>{ e.preventDefault(); dropArea.classList.add("dragover"); });
 dropArea.addEventListener("dragleave",()=>dropArea.classList.remove("dragover"));
 dropArea.addEventListener("drop",(e)=>{
