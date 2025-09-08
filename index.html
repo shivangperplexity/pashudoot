@@ -6,174 +6,147 @@
 <title>Cattle Breed Identifier</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  body { min-height:100vh; margin:0; padding:20px; font-family:'Inter',sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(135deg, #fde2e4, #e2f0cb, #cddafd);}
-  h1 { font-size:2rem; margin-bottom:20px; font-weight:700; color:#6a1b9a; text-align:center; }
-  .upload-container { cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; width:90%; max-width:340px; height:200px; background:rgba(255,255,255,0.6); border:2px dashed #6a1b9a; border-radius:16px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
-  .upload-container:hover, .upload-container.dragover { transform:scale(1.03); box-shadow:0 8px 16px rgba(106,27,154,0.3); background:rgba(255,255,255,0.8);}
-  .upload-icon { width:40px; height:40px; margin-bottom:8px; stroke:#6a1b9a; }
-  .upload-text { color:#333; font-size:1rem; font-weight:600; }
-  input[type="file"] { display:none; }
-
-  .overlay { position:fixed; inset:0; background:rgba(255,255,255,0.7); backdrop-filter:blur(4px); display:none; flex-direction:column; align-items:center; justify-content:center; z-index:1000; text-align:center; padding:20px;}
-  .overlay.visible { display:flex; }
-  .overlay img { transform:scale(2); margin-bottom:20px;}
-  .progress-texts { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:15px;}
-  .progress-texts p { font-size:1.1rem; font-weight:600; opacity:0.4; transition: all 0.5s ease; color:#444;}
-  .progress-texts p.active { opacity:1; color:#6a1b9a; font-size:1.2rem;}
-  .progress-bar { width:80%; max-width:320px; height:8px; background:#ddd; border-radius:6px; overflow:hidden; }
-  .progress-fill { height:100%; width:0%; background:linear-gradient(90deg, #6a1b9a, #d81b60, #0288d1); border-radius:6px; transition: width 0.8s ease; }
-
-  .result { margin-top:20px; max-width:500px; width:100%; background:#fff; padding:0; border-radius:16px; box-shadow:0 6px 16px rgba(106,27,154,0.25); opacity:0; transform:translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; overflow:hidden;}
-  .result.visible { opacity:1; transform:translateY(0);}
-  .result-header { background:linear-gradient(135deg, #6a1b9a, #d81b60); padding:12px; text-align:center; color:#fff; font-weight:700; font-size:1.4rem;}
-  .result-body { padding:16px 20px;}
-  .result-body p { font-size:1rem; margin:10px 0; font-weight:500; color:#333; }
-  .result-body strong { color:#6a1b9a; font-weight:700; }
+body{min-height:100vh;margin:0;padding:20px;font-family:'Inter',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#fde2e4,#e2f0cb,#cddafd);}
+h1{font-size:2rem;margin-bottom:20px;font-weight:700;color:#6a1b9a;text-align:center;}
+.upload-container{cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;width:90%;max-width:340px;height:200px;background:rgba(255,255,255,0.6);border:2px dashed #6a1b9a;border-radius:16px;transition:transform 0.3s ease,box-shadow 0.3s ease;}
+.upload-container:hover,.upload-container.dragover{transform:scale(1.03);box-shadow:0 8px 16px rgba(106,27,154,0.3);background:rgba(255,255,255,0.8);}
+.upload-icon{width:40px;height:40px;margin-bottom:8px;stroke:#6a1b9a;}
+.upload-text{color:#333;font-size:1rem;font-weight:600;}
+input[type="file"]{display:none;}
+.overlay{position:fixed;inset:0;background:rgba(255,255,255,0.7);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:1000;text-align:center;padding:20px;}
+.overlay.visible{display:flex;}
+.overlay img{transform:scale(2);margin-bottom:20px;}
+.progress-texts{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:15px;}
+.progress-texts p{font-size:1.1rem;font-weight:600;opacity:0.4;transition:all 0.5s ease;color:#444;}
+.progress-texts p.active{opacity:1;color:#6a1b9a;font-size:1.2rem;}
+.progress-bar{width:80%;max-width:320px;height:8px;background:#ddd;border-radius:6px;overflow:hidden;}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#6a1b9a,#d81b60,#0288d1);border-radius:6px;transition:width 0.8s ease;}
+.result{margin-top:20px;max-width:500px;width:100%;background:#fff;padding:0;border-radius:16px;box-shadow:0 6px 16px rgba(106,27,154,0.25);opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease;overflow:hidden;}
+.result.visible{opacity:1;transform:translateY(0);}
+.result-header{background:linear-gradient(135deg,#6a1b9a,#d81b60);padding:12px;text-align:center;color:#fff;font-weight:700;font-size:1.4rem;}
+.result-body{padding:16px 20px;}
+.result-body p{font-size:1rem;margin:10px 0;font-weight:500;color:#333;}
+.result-body strong{color:#6a1b9a;font-weight:700;}
 </style>
 </head>
 <body>
+
 <h1>Cattle Breed Identifier</h1>
 
 <label class="upload-container" id="dropArea">
-  <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
-    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-  </svg>
-  <span class="upload-text">Upload Image</span>
-  <input type="file" accept="image/*" id="imageUpload">
+<svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke-width="2">
+<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+</svg>
+<span class="upload-text">Upload Image</span>
+<input type="file" accept="image/*" id="imageUpload">
 </label>
 
 <div id="overlay" class="overlay">
-  <img src="analyze.gif" alt="Loading...">
-  <div class="progress-texts">
-    <p id="step1">Uploading Image...</p>
-    <p id="step2">Running Model...</p>
-    <p id="step3">Analyzing...</p>
-    <p id="step4">Fetching Results...</p>
-  </div>
-  <div class="progress-bar">
-    <div id="progressFill" class="progress-fill"></div>
-  </div>
+<img src="analyze.gif" alt="Loading...">
+<div class="progress-texts">
+<p id="step1">Uploading Image...</p>
+<p id="step2">Running Model...</p>
+<p id="step3">Analyzing...</p>
+<p id="step4">Fetching Results...</p>
+</div>
+<div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
 </div>
 
 <div id="result" class="result">
-  <div id="header" class="result-header"></div>
-  <div class="result-body">
-    <p id="origin"></p>
-    <p id="lifespan"></p>
-    <p id="milkYield"></p>
-    <p id="description"></p>
-  </div>
+<div id="header" class="result-header"></div>
+<div class="result-body">
+<p id="origin"></p>
+<p id="lifespan"></p>
+<p id="milkYield"></p>
+<p id="description"></p>
+</div>
 </div>
 
 <script>
-const overlay = document.getElementById("overlay");
-const steps = [document.getElementById("step1"), document.getElementById("step2"), document.getElementById("step3"), document.getElementById("step4")];
-const progressFill = document.getElementById("progressFill");
-const result = document.getElementById("result");
-const header = document.getElementById("header");
-const origin = document.getElementById("origin");
-const lifespan = document.getElementById("lifespan");
-const milkYield = document.getElementById("milkYield");
-const description = document.getElementById("description");
-const dropArea = document.getElementById("dropArea");
-const fileInput = document.getElementById("imageUpload");
+const overlay=document.getElementById("overlay");
+const steps=[document.getElementById("step1"),document.getElementById("step2"),document.getElementById("step3"),document.getElementById("step4")];
+const progressFill=document.getElementById("progressFill");
+const result=document.getElementById("result");
+const header=document.getElementById("header");
+const origin=document.getElementById("origin");
+const lifespan=document.getElementById("lifespan");
+const milkYield=document.getElementById("milkYield");
+const description=document.getElementById("description");
+const dropArea=document.getElementById("dropArea");
+const fileInput=document.getElementById("imageUpload");
 
-function showStep(index){
-  steps.forEach((s,i)=>s.classList.toggle("active", i===index));
-  progressFill.style.width = `${((index+1)/steps.length)*100}%`;
-}
-async function runProgress(){
-  for(let i=0;i<steps.length;i++){
-    showStep(i);
-    await new Promise(r=>setTimeout(r,800));
-  }
-}
-
-// Full breed info
-const breedInfo = {
-"Barbari Goat": {origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small dual-purpose goat."},
-"Bargur Cow": {origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
-"Bhadawari Buffalo": {origin:"U.P., India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Milk with high fat content."},
-"Black Bengal Goat": {origin:"West Bengal, India", lifespan:"8-12 years", milkYield:"1-2 L/day", description:"Known for meat and skin quality."},
-"Hallikar Cow": {origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 L/day", description:"Strong draught breed."},
-"Hariana Cow": {origin:"Haryana, India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Dairy breed with high milk yield."},
-"Holstein Friesian Cow": {origin:"Netherlands", lifespan:"18-22 years", milkYield:"20-30 L/day", description:"World's leading dairy breed."},
-"Jamunapari Goat": {origin:"U.P., India", lifespan:"10-12 years", milkYield:"2-3 L/day", description:"Large goat with high milk yield."},
-"Nagori Goat": {origin:"Rajasthan, India", lifespan:"12-15 years", milkYield:"1-2 L/day", description:"Good draught goat breed."},
-"Osmanabadi Goat": {origin:"Maharashtra, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Hardy and disease-resistant goat."},
-"Tharparkar Cow": {origin:"Rajasthan, India", lifespan:"15-18 years", milkYield:"10-12 L/day", description:"Dual-purpose heat-tolerant cow."},
-"Deoni Cow": {origin:"Maharashtra/Karnataka/Andhra Pradesh", lifespan:"12-15 years", milkYield:"3-8 L/day", description:"Dual-purpose cow breed."},
-"Gir Cow": {origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 L/day", description:"High-quality A2 milk producer."},
-"Guzerat Cow": {origin:"Gujarat, India", lifespan:"15-18 years", milkYield:"6-10 L/day", description:"Draught and dairy breed."},
-"Jaffrabadi Buffalo": {origin:"Gujarat, India", lifespan:"14-18 years", milkYield:"6-10 L/day", description:"Large buffalo, high milk yield."},
-"Jersey Cow": {origin:"Jersey Island, UK", lifespan:"18-22 years", milkYield:"12-20 L/day", description:"Rich milk producer."},
-"Mehsana Buffalo": {origin:"Gujarat, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"Good dairy buffalo."},
-"Murrah Buffalo": {origin:"Haryana, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"High milk-producing buffalo."},
-"Nili Ravi Buffalo": {origin:"Pakistan", lifespan:"14-18 years", milkYield:"7-12 L/day", description:"Famous dairy buffalo breed."},
-"Pandharpuri Cow": {origin:"Maharashtra, India", lifespan:"12-15 years", milkYield:"5-8 L/day", description:"Adapted to drought regions."},
-"Rathi Cow": {origin:"Rajasthan, India", lifespan:"15-20 years", milkYield:"8-10 L/day", description:"Heat-tolerant dairy cow."},
-"Red Sindhi Cow": {origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 L/day", description:"Good milk yield, heat-tolerant."},
-"Sahiwal Cow": {origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 L/day", description:"Heat-tolerant dairy breed."},
-"Sirohi Cow": {origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Good meat and milk producer."},
-"Vechur Cow": {origin:"Kerala, India", lifespan:"15-18 years", milkYield:"2-3 L/day", description:"Smallest cow breed, hardy."},
-"Not Identified": {origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."}
+const breedInfo={
+"Barbari Goat":{origin:"Rajasthan, India",lifespan:"10-12 years",milkYield:"1-2 L/day",description:"Small dual-purpose goat."},
+"Bargur Cow":{origin:"Tamil Nadu, India",lifespan:"15-18 years",milkYield:"3-5 L/day",description:"Draught cattle from hilly areas."},
+"Bhadawari Buffalo":{origin:"U.P., India",lifespan:"16-20 years",milkYield:"6-10 L/day",description:"Milk with high fat content."},
+"Black Bengal Goat":{origin:"West Bengal, India",lifespan:"8-12 years",milkYield:"1-2 L/day",description:"Known for meat and skin quality."},
+"Hallikar Cow":{origin:"Karnataka, India",lifespan:"15-20 years",milkYield:"2-5 L/day",description:"Strong draught breed."},
+"Hariana Cow":{origin:"Haryana, India",lifespan:"16-20 years",milkYield:"6-10 L/day",description:"Dairy breed with high milk yield."},
+"Holstein Friesian Cow":{origin:"Netherlands",lifespan:"18-22 years",milkYield:"20-30 L/day",description:"World's leading dairy breed."},
+"Jamunapari Goat":{origin:"U.P., India",lifespan:"10-12 years",milkYield:"2-3 L/day",description:"Large goat with high milk yield."},
+"Nagori Goat":{origin:"Rajasthan, India",lifespan:"12-15 years",milkYield:"1-2 L/day",description:"Good draught goat breed."},
+"Osmanabadi Goat":{origin:"Maharashtra, India",lifespan:"10-12 years",milkYield:"1-2 L/day",description:"Hardy and disease-resistant goat."},
+"Tharparkar Cow":{origin:"Rajasthan, India",lifespan:"15-18 years",milkYield:"10-12 L/day",description:"Dual-purpose heat-tolerant cow."},
+"Deoni Cow":{origin:"Maharashtra/Karnataka/Andhra Pradesh",lifespan:"12-15 years",milkYield:"3-8 L/day",description:"Dual-purpose cow breed."},
+"Gir Cow":{origin:"Gujarat, India",lifespan:"12-15 years",milkYield:"10-15 L/day",description:"High-quality A2 milk producer."},
+"Guzerat Cow":{origin:"Gujarat, India",lifespan:"15-18 years",milkYield:"6-10 L/day",description:"Draught and dairy breed."},
+"Jaffrabadi Buffalo":{origin:"Gujarat, India",lifespan:"14-18 years",milkYield:"6-10 L/day",description:"Large buffalo, high milk yield."},
+"Jersey Cow":{origin:"Jersey Island, UK",lifespan:"18-22 years",milkYield:"12-20 L/day",description:"Rich milk producer."},
+"Mehsana Buffalo":{origin:"Gujarat, India",lifespan:"16-20 years",milkYield:"8-12 L/day",description:"Dairy breed with good milk."},
+"Murrah Buffalo":{origin:"Haryana, India",lifespan:"16-20 years",milkYield:"8-12 L/day",description:"High milk-producing buffalo."},
+"Nili Ravi Buffalo":{origin:"Pakistan",lifespan:"14-18 years",milkYield:"7-12 L/day",description:"Famous dairy buffalo breed."},
+"Pandharpuri Cow":{origin:"Maharashtra, India",lifespan:"12-15 years",milkYield:"5-8 L/day",description:"Adapted to drought regions."},
+"Rathi Cow":{origin:"Rajasthan, India",lifespan:"15-20 years",milkYield:"8-10 L/day",description:"Heat-tolerant dairy cow."},
+"Red Sindhi Cow":{origin:"Sindh (Pakistan/India)",lifespan:"12-15 years",milkYield:"8-12 L/day",description:"Good milk yield, heat-tolerant."},
+"Sahiwal Cow":{origin:"Punjab region",lifespan:"12-15 years",milkYield:"12-18 L/day",description:"Heat-tolerant dairy breed."},
+"Sirohi Cow":{origin:"Rajasthan, India",lifespan:"10-12 years",milkYield:"1-2 L/day",description:"Good meat and milk producer."},
+"Vechur Cow":{origin:"Kerala, India",lifespan:"15-18 years",milkYield:"2-3 L/day",description:"Smallest cow breed, hardy."},
+"Not Identified":{origin:"-",lifespan:"-",milkYield:"-",description:"Breed could not be identified."}
 };
 
+// Input handling
+fileInput.addEventListener("change",()=>handleFile(fileInput.files[0]));
+dropArea.addEventListener("dragover",e=>{e.preventDefault();dropArea.classList.add("dragover");});
+dropArea.addEventListener("dragleave",()=>dropArea.classList.remove("dragover"));
+dropArea.addEventListener("drop",e=>{e.preventDefault();dropArea.classList.remove("dragover");handleFile(e.dataTransfer.files[0]);});
+
 async function handleFile(file){
-  overlay.classList.add("visible");
-  runProgress();
-  header.textContent = "";
-  origin.textContent = lifespan.textContent = milkYield.textContent = description.textContent = "";
+overlay.classList.add("visible");
+progressFill.style.width="0%";
+steps.forEach((s,i)=>s.classList.remove("active"));
 
-  try{
-    // Detection
-    const formData = new FormData();
-    formData.append("file", file);
-    const detectResp = await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST", body: formData});
-    const detectData = await detectResp.json().catch(()=>null);
-    const accepted = detectData?.prediction === "LABEL_1" || detectData?.prediction?.toLowerCase() === "accept";
+// Step progress animation
+for(let i=0;i<steps.length;i++){steps[i].classList.add("active");progressFill.style.width=((i+1)/steps.length*100)+"%";await new Promise(r=>setTimeout(r,500));}
 
-    if(!accepted){
-      header.textContent = "🚫 No Cattle Detected";
-      overlay.classList.remove("visible");
-      result.classList.add("visible");
-      return;
-    }
+// Detection API
+const detectForm=new FormData();
+detectForm.append("file",file);
+let detectData;
+try{const resp=await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST",body:detectForm});detectData=await resp.json();}catch(e){detectData=null;}
+let label=(detectData&&detectData.prediction)?detectData.prediction:"Not Identified";
 
-    // Breed Classification
-    const breedForm = new FormData();
-    breedForm.append("file", file);
-    const breedResp = await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:breedForm});
-    const breedData = await breedResp.json().catch(()=>null);
+if(label.toLowerCase()==="label_0"){label="Not Identified";}
 
-    let topClass = "Not Identified", topConf = 0;
-    if(breedData?.predictions){
-      const entries = Object.entries(breedData.predictions);
-      entries.sort((a,b)=>b[1]-a[1]);
-      topClass = entries[0][0];
-      topConf = entries[0][1];
-    }
-
-    if(topClass.toLowerCase().includes("beetal")) topClass="Not Identified";
-    const info = breedInfo[topClass] || breedInfo["Not Identified"];
-    header.textContent = `✅ Cattle Detected → Breed: ${topClass} (${(topConf*100).toFixed(1)}%)`;
-    origin.innerHTML = `Origin: <strong>${info.origin}</strong>`;
-    lifespan.innerHTML = `Lifespan: <strong>${info.lifespan}</strong>`;
-    milkYield.innerHTML = `Milk Yield: <strong>${info.milkYield}</strong>`;
-    description.textContent = `About: ${info.description}`;
-
-  }catch(err){
-    header.textContent="⚠️ Error: Could not analyze image.";
-  }finally{
-    overlay.classList.remove("visible");
-    result.classList.add("visible");
-  }
+// Breed API (if detected)
+if(label!=="Not Identified"){
+const breedForm=new FormData();
+breedForm.append("file",file);
+let breedData;
+try{const resp=await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:breedForm});breedData=await resp.json();}catch(e){breedData=null;}
+if(breedData&&breedData.prediction) label=breedData.prediction;
 }
 
-fileInput.addEventListener("change",(e)=>{if(e.target.files[0]) handleFile(e.target.files[0]);});
-dropArea.addEventListener("dragover",(e)=>{e.preventDefault(); dropArea.classList.add("dragover");});
-dropArea.addEventListener("dragleave",()=>dropArea.classList.remove("dragover"));
-dropArea.addEventListener("drop",(e)=>{e.preventDefault(); dropArea.classList.remove("dragover"); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);});
+// Show result
+overlay.classList.remove("visible");
+result.classList.add("visible");
+header.textContent=label==="Not Identified"?"Cattle Detected → Breed: Not Identified":"✅ Cattle Detected → Breed: "+label;
+const info=breedInfo[label]||breedInfo["Not Identified"];
+origin.innerHTML=`<strong>Origin:</strong> ${info.origin}`;
+lifespan.innerHTML=`<strong>Lifespan:</strong> ${info.lifespan}`;
+milkYield.innerHTML=`<strong>Milk Yield:</strong> ${info.milkYield}`;
+description.innerHTML=`<strong>Description:</strong> ${info.description}`;
+}
 </script>
+
 </body>
 </html>
