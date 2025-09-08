@@ -16,11 +16,11 @@ input[type="file"]{display:none;}
 .overlay{position:fixed;inset:0;background:rgba(255,255,255,0.7);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:1000;text-align:center;padding:20px;}
 .overlay.visible{display:flex;}
 .overlay img{transform:scale(2);margin-bottom:20px;}
-.progress-texts{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:15px;}
-.progress-texts p{font-size:1.1rem;font-weight:600;opacity:0.4;transition:all 0.5s ease;color:#444;}
-.progress-texts p.active{opacity:1;color:#6a1b9a;font-size:1.2rem;}
-.progress-bar{width:80%;max-width:320px;height:8px;background:#ddd;border-radius:6px;overflow:hidden;}
-.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#6a1b9a,#d81b60,#0288d1);border-radius:6px;transition:width 0.8s ease;}
+.progress-texts{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:15px;position:relative;height:30px;}
+.progress-texts p{position:absolute;font-size:1.1rem;font-weight:600;opacity:0;transition:opacity 0.5s ease,color 0.5s ease;font-weight:600;color:#444;}
+.progress-texts p.active{opacity:1;color:#6a1b9a;}
+.progress-bar{width:80%;max-width:320px;height:8px;background:#ddd;border-radius:6px;overflow:hidden;margin-top:40px;}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#6a1b9a,#d81b60,#0288d1);border-radius:6px;transition:width 0.5s ease;}
 .result{margin-top:20px;max-width:500px;width:100%;background:#fff;padding:0;border-radius:16px;box-shadow:0 6px 16px rgba(106,27,154,0.25);opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease;overflow:hidden;}
 .result.visible{opacity:1;transform:translateY(0);}
 .result-header{background:linear-gradient(135deg,#6a1b9a,#d81b60);padding:12px;text-align:center;color:#fff;font-weight:700;font-size:1.4rem;}
@@ -104,49 +104,82 @@ const breedInfo={
 "Not Identified":{origin:"-",lifespan:"-",milkYield:"-",description:"Breed could not be identified."}
 };
 
-// Input handling
-fileInput.addEventListener("change",()=>handleFile(fileInput.files[0]));
-dropArea.addEventListener("dragover",e=>{e.preventDefault();dropArea.classList.add("dragover");});
-dropArea.addEventListener("dragleave",()=>dropArea.classList.remove("dragover"));
-dropArea.addEventListener("drop",e=>{e.preventDefault();dropArea.classList.remove("dragover");handleFile(e.dataTransfer.files[0]);});
+// helper to animate steps
+async function runSteps() {
+    for(let i=0;i<steps.length;i++){
+        steps.forEach((s,j)=>s.classList.toggle("active",i===j));
+        progressFill.style.width=`${((i+1)/steps.length)*100}%`;
+        await new Promise(r=>setTimeout(r,1000));
+    }
+}
 
+// handle file upload
 async function handleFile(file){
-overlay.classList.add("visible");
-progressFill.style.width="0%";
-steps.forEach((s,i)=>s.classList.remove("active"));
+    overlay.classList.add("visible");
+    result.classList.remove("visible");
+    header.textContent="";
+    origin.textContent=lifespan.textContent=milkYield.textContent=description.textContent="";
+    await runSteps();
 
-// Step progress animation
-for(let i=0;i<steps.length;i++){steps[i].classList.add("active");progressFill.style.width=((i+1)/steps.length*100)+"%";await new Promise(r=>setTimeout(r,500));}
+    try{
+        // Detection API
+        const formData=new FormData();
+        formData.append("file",file);
+        const detectResp=await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST",body:formData});
+        let detectData=await detectResp.json();
+        let detectLabel=(detectData && detectData.prediction)?detectData.prediction:"Not Identified";
 
-// Detection API
-const detectForm=new FormData();
-detectForm.append("file",file);
-let detectData;
-try{const resp=await fetch("https://rjsmoke00-cd.hf.space/predict",{method:"POST",body:detectForm});detectData=await resp.json();}catch(e){detectData=null;}
-let label=(detectData&&detectData.prediction)?detectData.prediction:"Not Identified";
+        if(detectLabel==="LABEL_0"){ detectLabel="Not Identified"; }
+        else if(detectLabel==="LABEL_1"){ detectLabel="Detected"; }
 
-if(label.toLowerCase()==="label_0"){label="Not Identified";}
+        // Only call breed API if detected
+        if(detectLabel==="Detected"){
+            const breedForm=new FormData();
+            breedForm.append("file",file);
+            try{
+                const breedResp=await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:breedForm});
+                const breedData=await breedResp.json();
+                if(breedData && breedData.prediction) detectLabel=breedData.prediction;
+                else detectLabel="Not Identified";
+            }catch(e){ detectLabel="Not Identified"; }
+        }
 
-// Breed API (if detected)
-if(label!=="Not Identified"){
-const breedForm=new FormData();
-breedForm.append("file",file);
-let breedData;
-try{const resp=await fetch("https://Shivangguptasih-breedclassification.hf.space/predict",{method:"POST",body:breedForm});breedData=await resp.json();}catch(e){breedData=null;}
-if(breedData&&breedData.prediction) label=breedData.prediction;
+        // Display results
+        const info=breedInfo[detectLabel]||breedInfo["Not Identified"];
+        if(detectLabel==="Not Identified"){
+            header.textContent="🚫 No Cattle Detected";
+            origin.textContent=lifespan.textContent=milkYield.textContent=description.textContent="";
+        } else {
+            header.textContent="✅ Cattle Detected → Breed: "+detectLabel;
+            origin.innerHTML=`<strong>Origin:</strong> ${info.origin}`;
+            lifespan.innerHTML=`<strong>Lifespan:</strong> ${info.lifespan}`;
+            milkYield.innerHTML=`<strong>Milk Yield:</strong> ${info.milkYield}`;
+            description.innerHTML=`<strong>Description:</strong> ${info.description}`;
+        }
+    }catch(err){
+        header.textContent="⚠️ Error analyzing image";
+        console.error(err);
+    }finally{
+        overlay.classList.remove("visible");
+        result.classList.add("visible");
+    }
 }
 
-// Show result
-overlay.classList.remove("visible");
-result.classList.add("visible");
-header.textContent=label==="Not Identified"?"Cattle Detected → Breed: Not Identified":"✅ Cattle Detected → Breed: "+label;
-const info=breedInfo[label]||breedInfo["Not Identified"];
-origin.innerHTML=`<strong>Origin:</strong> ${info.origin}`;
-lifespan.innerHTML=`<strong>Lifespan:</strong> ${info.lifespan}`;
-milkYield.innerHTML=`<strong>Milk Yield:</strong> ${info.milkYield}`;
-description.innerHTML=`<strong>Description:</strong> ${info.description}`;
-}
+// input change
+fileInput.addEventListener("change",(e)=>{
+    const file=e.target.files[0];
+    if(file) handleFile(file);
+});
+
+// drag & drop
+dropArea.addEventListener("dragover",(e)=>{ e.preventDefault(); dropArea.classList.add("dragover"); });
+dropArea.addEventListener("dragleave",()=>dropArea.classList.remove("dragover"));
+dropArea.addEventListener("drop",(e)=>{
+    e.preventDefault();
+    dropArea.classList.remove("dragover");
+    const file=e.dataTransfer.files && e.dataTransfer.files[0];
+    if(file) handleFile(file);
+});
 </script>
-
 </body>
 </html>
