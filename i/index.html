@@ -5,39 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cattle Breed Live Scanner</title>
 <style>
-  body { font-family:sans-serif; display:flex; flex-direction:column; align-items:center; background:#f0f0f0; margin:0; padding:10px;}
-  #cameraContainer { position: relative; width:90%; max-width:480px; display:flex; flex-direction:column; align-items:center;}
-  video, canvas { width:100%; height:auto; border-radius:12px; } /* removed mirror transform */
-  #logs { width:90%; max-width:480px; background:#222; color:#0f0; padding:8px; margin-top:10px; font-family:monospace; font-size:0.85rem; border-radius:12px; max-height:120px; overflow-y:auto; }
-  #result { display:none; width:90%; max-width:480px; background:#fff; margin-top:10px; border-radius:12px; padding:12px; box-shadow:0 4px 12px rgba(0,0,0,0.2);}
-  button { margin-top:8px; padding:8px 16px; border:none; border-radius:8px; background:#6a1b9a; color:#fff; cursor:pointer; }
-  #preprocessedContainer { width:90%; max-width:480px; margin-top:10px; text-align:center; }
-  #preprocessedContainer p { margin:4px 0; font-weight:600; }
+  body { font-family: sans-serif; display:flex; flex-direction:column; align-items:center; padding:10px; background:#f0f0f0; }
+  video, canvas { border:1px solid #333; max-width:100%; }
+  #preprocessedCanvas { margin-top:10px; }
+  #logs { max-height:150px; overflow:auto; background:#222; color:#0f0; padding:5px; width:90%; margin-top:10px; font-family:monospace; font-size:0.85rem; }
+  #result { margin-top:10px; background:#fff; padding:10px; border-radius:8px; display:none; width:90%; max-width:400px; }
+  button { margin-top:10px; padding:8px 12px; font-size:1rem; }
 </style>
 </head>
 <body>
-<h1>Cattle Breed Scanner</h1>
-<div id="cameraContainer">
-  <video id="video" autoplay muted playsinline></video>
-</div>
 
-<div id="preprocessedContainer">
-  <p>Preprocessed Frame Sent:</p>
-  <canvas id="preprocessedCanvas"></canvas>
-</div>
-
+<h1>Cattle Breed Live Scanner</h1>
+<video id="video" autoplay muted playsinline></video>
+<canvas id="preprocessedCanvas"></canvas>
 <div id="logs"></div>
+
 <div id="result">
-  <h2 id="resultHeader"></h2>
+  <h3 id="resultHeader"></h3>
   <p id="origin"></p>
   <p id="lifespan"></p>
   <p id="milkYield"></p>
   <p id="description"></p>
-  <button id="scanAgainBtn">Scan Again</button>
+  <button id="scanAgain">Scan Again</button>
 </div>
 
 <script>
 const video = document.getElementById("video");
+const preprocessedCanvas = document.getElementById("preprocessedCanvas");
+const preCtx = preprocessedCanvas.getContext("2d");
 const logs = document.getElementById("logs");
 const result = document.getElementById("result");
 const resultHeader = document.getElementById("resultHeader");
@@ -45,78 +40,74 @@ const origin = document.getElementById("origin");
 const lifespan = document.getElementById("lifespan");
 const milkYield = document.getElementById("milkYield");
 const description = document.getElementById("description");
-const scanAgainBtn = document.getElementById("scanAgainBtn");
-const preprocessedCanvas = document.getElementById("preprocessedCanvas");
-const preCtx = preprocessedCanvas.getContext("2d");
+const scanAgainBtn = document.getElementById("scanAgain");
 
 let scanning = true;
 let requestInProgress = false;
 
 const breedInfo = {
-"Barbari Goat": {origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small-sized dual-purpose goat."},
-"Bargur Cow": {origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
-"Bhadawari Buffalo": {origin:"U.P., India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Milk with high fat content."},
-"Black Bengal Goat": {origin:"West Bengal, India", lifespan:"8-12 years", milkYield:"1-2 L/day", description:"Known for meat and skin quality."},
-"Hallikar Cow": {origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 L/day", description:"Strong draught breed."},
-"Hariana Cow": {origin:"Haryana, India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Dairy breed with high milk yield."},
-"Holstein Friesian Cow": {origin:"Netherlands", lifespan:"18-22 years", milkYield:"20-30 L/day", description:"World's leading dairy breed."},
-"Jamunapari Goat": {origin:"U.P., India", lifespan:"10-12 years", milkYield:"2-3 L/day", description:"Large goat with high milk yield."},
-"Nagori Goat": {origin:"Rajasthan, India", lifespan:"12-15 years", milkYield:"1-2 L/day", description:"Good draught goat breed."},
-"Osmanabadi Goat": {origin:"Maharashtra, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Hardy and disease-resistant goat."},
-"Tharparkar Cow": {origin:"Rajasthan, India", lifespan:"15-18 years", milkYield:"10-12 L/day", description:"Dual-purpose heat-tolerant cow."},
-"Deoni Cow": {origin:"Maharashtra/Karnataka/Andhra Pradesh", lifespan:"12-15 years", milkYield:"3-8 L/day", description:"Dual-purpose cow breed."},
-"Gir Cow": {origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 L/day", description:"High-quality A2 milk producer."},
-"Guzerat Cow": {origin:"Gujarat, India", lifespan:"15-18 years", milkYield:"6-10 L/day", description:"Draught and dairy breed."},
-"Jaffrabadi Buffalo": {origin:"Gujarat, India", lifespan:"14-18 years", milkYield:"6-10 L/day", description:"Large buffalo, high milk yield."},
-"Jersey Cow": {origin:"Jersey Island, UK", lifespan:"18-22 years", milkYield:"12-20 L/day", description:"Rich milk producer."},
-"Mehsana Buffalo": {origin:"Gujarat, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"Good dairy buffalo."},
-"Murrah Buffalo": {origin:"Haryana, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"High milk-producing buffalo."},
-"Nili Ravi Buffalo": {origin:"Pakistan", lifespan:"14-18 years", milkYield:"7-12 L/day", description:"Famous dairy buffalo breed."},
-"Pandharpuri Cow": {origin:"Maharashtra, India", lifespan:"12-15 years", milkYield:"5-8 L/day", description:"Adapted to drought regions."},
-"Rathi Cow": {origin:"Rajasthan, India", lifespan:"15-20 years", milkYield:"8-10 L/day", description:"Heat-tolerant dairy cow."},
-"Red Sindhi Cow": {origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 L/day", description:"Good milk yield, heat-tolerant."},
-"Sahiwal Cow": {origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 L/day", description:"Heat-tolerant dairy breed."},
-"Sirohi Cow": {origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Good meat and milk producer."},
-"Vechur Cow": {origin:"Kerala, India", lifespan:"15-18 years", milkYield:"2-3 L/day", description:"Smallest cow breed, hardy."},
-"Not Identified": {origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."}
+  "Barbari Goat": {fullName:"Barbari Goat", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small-sized dual-purpose goat."},
+  "Bargur Cow": {fullName:"Bargur Cow", origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
+  "Not Identified": {fullName:"Not Identified", origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."},
+  "Bhadawari Buffalo": {fullName:"Bhadawari Buffalo", origin:"U.P., India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Milk with high fat content."},
+  "Black Bengal Goat": {fullName:"Black Bengal Goat", origin:"West Bengal, India", lifespan:"8-12 years", milkYield:"1-2 L/day", description:"Known for meat and skin quality."},
+  "Hallikar Cow": {fullName:"Hallikar Cow", origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 L/day", description:"Strong draught breed."},
+  "Hariana Cow": {fullName:"Hariana Cow", origin:"Haryana, India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Dairy breed with high milk yield."},
+  "Holstein Friesian Cow": {fullName:"Holstein Friesian Cow", origin:"Netherlands", lifespan:"18-22 years", milkYield:"20-30 L/day", description:"World's leading dairy breed."},
+  "Jamunapari Goat": {fullName:"Jamunapari Goat", origin:"U.P., India", lifespan:"10-12 years", milkYield:"2-3 L/day", description:"Large goat with high milk yield."},
+  "Nagori Goat": {fullName:"Nagori Goat", origin:"Rajasthan, India", lifespan:"12-15 years", milkYield:"1-2 L/day", description:"Good draught goat breed."},
+  "Osmanabadi Goat": {fullName:"Osmanabadi Goat", origin:"Maharashtra, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Hardy and disease-resistant goat."},
+  "Tharparkar Cow": {fullName:"Tharparkar Cow", origin:"Rajasthan, India", lifespan:"15-18 years", milkYield:"10-12 L/day", description:"Dual-purpose heat-tolerant cow."},
+  "Deoni Cow": {fullName:"Deoni Cow", origin:"Maharashtra/Karnataka/Andhra Pradesh", lifespan:"12-15 years", milkYield:"3-8 L/day", description:"Dual-purpose cow breed."},
+  "Gir Cow": {fullName:"Gir Cow", origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 L/day", description:"High-quality A2 milk producer."},
+  "Guzerat Cow": {fullName:"Guzerat Cow", origin:"Gujarat, India", lifespan:"15-18 years", milkYield:"6-10 L/day", description:"Draught and dairy breed."},
+  "Jaffrabadi Buffalo": {fullName:"Jaffrabadi Buffalo", origin:"Gujarat, India", lifespan:"14-18 years", milkYield:"6-10 L/day", description:"Large buffalo, high milk yield."},
+  "Jersey Cow": {fullName:"Jersey Cow", origin:"Jersey Island, UK", lifespan:"18-22 years", milkYield:"12-20 L/day", description:"Rich milk producer."},
+  "Mehsana Buffalo": {fullName:"Mehsana Buffalo", origin:"Gujarat, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"Good dairy buffalo."},
+  "Murrah Buffalo": {fullName:"Murrah Buffalo", origin:"Haryana, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"High milk-producing buffalo."},
+  "Nili Ravi Buffalo": {fullName:"Nili Ravi Buffalo", origin:"Pakistan", lifespan:"14-18 years", milkYield:"7-12 L/day", description:"Famous dairy buffalo breed."},
+  "Pandharpuri Cow": {fullName:"Pandharpuri Cow", origin:"Maharashtra, India", lifespan:"12-15 years", milkYield:"5-8 L/day", description:"Adapted to drought regions."},
+  "Rathi Cow": {fullName:"Rathi Cow", origin:"Rajasthan, India", lifespan:"15-20 years", milkYield:"8-10 L/day", description:"Heat-tolerant dairy cow."},
+  "Red Sindhi Cow": {fullName:"Red Sindhi Cow", origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 L/day", description:"Good milk yield, heat-tolerant."},
+  "Sahiwal Cow": {fullName:"Sahiwal Cow", origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 L/day", description:"Heat-tolerant dairy breed."},
+  "Sirohi Cow": {fullName:"Sirohi Cow", origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Good meat and milk producer."},
+  "Vechur Cow": {fullName:"Vechur Cow", origin:"Kerala, India", lifespan:"15-18 years", milkYield:"2-3 L/day", description:"Smallest cow breed, hardy."}
 };
 
-scanAgainBtn.addEventListener("click", ()=>{
-  scanning=true;
-  result.style.display="none";
-});
-
-function log(text){
-  logs.textContent += text+"\n";
+// logs
+function log(msg){
+  logs.textContent += msg+"\n";
   logs.scrollTop = logs.scrollHeight;
 }
 
-// Start camera
+// start camera
 async function startCamera(){
   try{
-    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false});
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio:false });
     video.srcObject = stream;
-    video.play();
-    requestAnimationFrame(liveScan);
-  }catch(e){ log("Camera error: "+e.message);}
+    video.onloadedmetadata = ()=> video.play();
+  } catch(e){
+    console.error("Camera error:", e);
+    log("Camera error: "+e);
+  }
 }
+startCamera();
 
-// Preprocess: crop black borders + resize + contrast
-function getFrameBlob(){
+// preprocess frame
+async function getFrameBlob(){
   const tmpCanvas = document.createElement("canvas");
   const tmpCtx = tmpCanvas.getContext("2d");
   tmpCanvas.width = video.videoWidth;
   tmpCanvas.height = video.videoHeight;
   tmpCtx.drawImage(video,0,0);
+  const imgData = tmpCtx.getImageData(0,0,tmpCanvas.width,tmpCanvas.height).data;
 
-  // Simple black border crop (threshold)
-  const imgData = tmpCtx.getImageData(0,0,tmpCanvas.width,tmpCanvas.height);
-  let minX=tmpCanvas.width,maxX=0,minY=tmpCanvas.height,maxY=0;
-  for(let y=0;y<imgData.height;y++){
-    for(let x=0;x<imgData.width;x++){
-      const i=(y*imgData.width + x)*4;
-      const r=imgData.data[i], g=imgData.data[i+1], b=imgData.data[i+2];
-      if(r+g+b>30){ // non-black pixel
+  // crop black borders
+  let minX=tmpCanvas.width, minY=tmpCanvas.height, maxX=0, maxY=0;
+  for(let y=0;y<tmpCanvas.height;y++){
+    for(let x=0;x<tmpCanvas.width;x++){
+      const i=(y*tmpCanvas.width+x)*4;
+      if(imgData[i]+imgData[i+1]+imgData[i+2]>30){ // non-black
         if(x<minX) minX=x;
         if(x>maxX) maxX=x;
         if(y<minY) minY=y;
@@ -125,61 +116,65 @@ function getFrameBlob(){
     }
   }
   const cw=maxX-minX, ch=maxY-minY;
-  tmpCanvas.width = cw; tmpCanvas.height = ch;
+  tmpCanvas.width=cw; tmpCanvas.height=ch;
   tmpCtx.drawImage(video,minX,minY,cw,ch,0,0,cw,ch);
 
-  // resize to 320px width
-  const outCanvas = document.createElement("canvas");
-  const scale = 320/cw;
-  outCanvas.width = 320; outCanvas.height = ch*scale;
-  const outCtx = outCanvas.getContext("2d");
-  outCtx.filter = "contrast(1.2) brightness(1.1)";
+  // resize
+  const outCanvas=document.createElement("canvas");
+  const scale=320/cw;
+  outCanvas.width=320; outCanvas.height=ch*scale;
+  const outCtx=outCanvas.getContext("2d");
+  outCtx.filter="contrast(1.2) brightness(1.1)";
   outCtx.drawImage(tmpCanvas,0,0,outCanvas.width,outCanvas.height);
 
-  // show preprocessed frame
-  preprocessedCanvas.width = outCanvas.width;
-  preprocessedCanvas.height = outCanvas.height;
+  preprocessedCanvas.width=outCanvas.width;
+  preprocessedCanvas.height=outCanvas.height;
   preCtx.drawImage(outCanvas,0,0);
 
   return new Promise(resolve=>outCanvas.toBlob(resolve,"image/jpeg"));
 }
 
-// Simulated Detection API
+// simulate detection API
 async function detectCattle(blob){
-  // Replace this with real fetch
   await new Promise(r=>setTimeout(r,200));
   return "LABEL_1"; // only proceed if LABEL_1
 }
 
-// Simulated Breed API
+// simulate breed API
 async function detectBreed(blob){
   await new Promise(r=>setTimeout(r,300));
   return "Barbari Goat"; // pretend breed
 }
 
-// Show results
+// show result
 function showResult(breed){
-  const info = breedInfo[breed]||breedInfo["Not Identified"];
-  resultHeader.textContent = `✅ Breed Detected: ${breed}`;
-  origin.textContent = `Origin: ${info.origin}`;
-  lifespan.textContent = `Lifespan: ${info.lifespan}`;
-  milkYield.textContent = `Milk Yield: ${info.milkYield}`;
-  description.textContent = `About: ${info.description}`;
+  const info=breedInfo[breed]||breedInfo["Not Identified"];
+  resultHeader.textContent=`✅ Breed Detected: ${breed}`;
+  origin.textContent=`Origin: ${info.origin}`;
+  lifespan.textContent=`Lifespan: ${info.lifespan}`;
+  milkYield.textContent=`Milk Yield: ${info.milkYield}`;
+  description.textContent=`About: ${info.description}`;
   result.style.display="block";
 }
 
-// Live scan loop
+// scan again
+scanAgainBtn.addEventListener("click",()=>{
+  result.style.display="none";
+  scanning=true;
+});
+
+// live scan
 async function liveScan(){
   if(!scanning || requestInProgress){
     requestAnimationFrame(liveScan);
     return;
   }
   requestInProgress=true;
-  const blob = await getFrameBlob();
-  const label = await detectCattle(blob);
-  log(`Detection result: ${label}`);
+  const blob=await getFrameBlob();
+  const label=await detectCattle(blob);
+  log(`Detection: ${label}`);
   if(label==="LABEL_1"){
-    const breed = await detectBreed(blob);
+    const breed=await detectBreed(blob);
     log(`Breed detected: ${breed}`);
     showResult(breed);
     scanning=false; // freeze frame
@@ -187,7 +182,7 @@ async function liveScan(){
   requestInProgress=false;
   setTimeout(()=>requestAnimationFrame(liveScan),500);
 }
-
+liveScan();
 </script>
 </body>
 </html>
