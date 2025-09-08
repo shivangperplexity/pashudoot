@@ -76,22 +76,41 @@ let scanning = true;
 let requestInProgress = false;
 let lastBreed = null;
 
-// Example breed info mapping
+// All breed info
 const breedInfo = {
   "Barbari Goat": {origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Small-sized dual-purpose goat."},
   "Bargur Cow": {origin:"Tamil Nadu, India", lifespan:"15-18 years", milkYield:"3-5 L/day", description:"Draught cattle from hilly areas."},
   "Bhadawari Buffalo": {origin:"U.P., India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Milk with high fat content."},
-  "Not Identified": {origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."},
-  // Add all breeds here as needed
+  "Black Bengal Goat": {origin:"West Bengal, India", lifespan:"8-12 years", milkYield:"1-2 L/day", description:"Known for meat and skin quality."},
+  "Hallikar Cow": {origin:"Karnataka, India", lifespan:"15-20 years", milkYield:"2-5 L/day", description:"Strong draught breed."},
+  "Hariana Cow": {origin:"Haryana, India", lifespan:"16-20 years", milkYield:"6-10 L/day", description:"Dairy breed with high milk yield."},
+  "Holstein Friesian Cow": {origin:"Netherlands", lifespan:"18-22 years", milkYield:"20-30 L/day", description:"World's leading dairy breed."},
+  "Jamunapari Goat": {origin:"U.P., India", lifespan:"10-12 years", milkYield:"2-3 L/day", description:"Large goat with high milk yield."},
+  "Nagori Goat": {origin:"Rajasthan, India", lifespan:"12-15 years", milkYield:"1-2 L/day", description:"Good draught goat breed."},
+  "Osmanabadi Goat": {origin:"Maharashtra, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Hardy and disease-resistant goat."},
+  "Tharparkar Cow": {origin:"Rajasthan, India", lifespan:"15-18 years", milkYield:"10-12 L/day", description:"Dual-purpose heat-tolerant cow."},
+  "Deoni Cow": {origin:"Maharashtra/Karnataka/Andhra Pradesh", lifespan:"12-15 years", milkYield:"3-8 L/day", description:"Dual-purpose cow breed."},
+  "Gir Cow": {origin:"Gujarat, India", lifespan:"12-15 years", milkYield:"10-15 L/day", description:"High-quality A2 milk producer."},
+  "Guzerat Cow": {origin:"Gujarat, India", lifespan:"15-18 years", milkYield:"6-10 L/day", description:"Draught and dairy breed."},
+  "Jaffrabadi Buffalo": {origin:"Gujarat, India", lifespan:"14-18 years", milkYield:"6-10 L/day", description:"Large buffalo, high milk yield."},
+  "Jersey Cow": {origin:"Jersey Island, UK", lifespan:"18-22 years", milkYield:"12-20 L/day", description:"Rich milk producer."},
+  "Mehsana Buffalo": {origin:"Gujarat, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"Good dairy buffalo."},
+  "Murrah Buffalo": {origin:"Haryana, India", lifespan:"16-20 years", milkYield:"8-12 L/day", description:"High milk-producing buffalo."},
+  "Nili Ravi Buffalo": {origin:"Pakistan", lifespan:"14-18 years", milkYield:"7-12 L/day", description:"Famous dairy buffalo breed."},
+  "Pandharpuri Cow": {origin:"Maharashtra, India", lifespan:"12-15 years", milkYield:"5-8 L/day", description:"Adapted to drought regions."},
+  "Rathi Cow": {origin:"Rajasthan, India", lifespan:"15-20 years", milkYield:"8-10 L/day", description:"Heat-tolerant dairy cow."},
+  "Red Sindhi Cow": {origin:"Sindh (Pakistan/India)", lifespan:"12-15 years", milkYield:"8-12 L/day", description:"Good milk yield, heat-tolerant."},
+  "Sahiwal Cow": {origin:"Punjab region", lifespan:"12-15 years", milkYield:"12-18 L/day", description:"Heat-tolerant dairy breed."},
+  "Sirohi Cow": {origin:"Rajasthan, India", lifespan:"10-12 years", milkYield:"1-2 L/day", description:"Good meat and milk producer."},
+  "Vechur Cow": {origin:"Kerala, India", lifespan:"15-18 years", milkYield:"2-3 L/day", description:"Smallest cow breed, hardy."},
+  "Not Identified": {origin:"-", lifespan:"-", milkYield:"-", description:"Breed could not be identified."}
 };
 
-// Show log
 function log(text){
   logs.textContent += text+"\n";
   logs.scrollTop = logs.scrollHeight;
 }
 
-// Freeze frame
 function showResult(breedName){
   const info = breedInfo[breedName] || breedInfo["Not Identified"];
   resultHeader.textContent = `✅ Detected Breed: ${breedName}`;
@@ -103,14 +122,12 @@ function showResult(breedName){
   overlayBox.style.display = "none";
 }
 
-// Reset scanning
 scanAgainBtn.addEventListener("click", ()=>{
   scanning = true;
   lastBreed = null;
   result.style.display = "none";
 });
 
-// Camera setup
 async function startCamera(){
   try{
     const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}, audio:false});
@@ -123,7 +140,6 @@ async function startCamera(){
   }
 }
 
-// Preprocess frame
 function getFrameBlob(){
   const canvas = document.createElement("canvas");
   const scale = 300/video.videoWidth;
@@ -131,55 +147,4 @@ function getFrameBlob(){
   canvas.height = video.videoHeight * scale;
   const ctx = canvas.getContext("2d");
   ctx.drawImage(video,0,0,canvas.width,canvas.height);
-  return new Promise(resolve => canvas.toBlob(resolve,"image/jpeg",0.8));
-}
-
-// Simulated detection API (replace with actual)
-async function detectionAPI(blob){
-  // Simulate LABEL_0 and LABEL_1 randomly
-  await new Promise(r=>setTimeout(r,100));
-  return {prediction: Math.random()<0.1?"LABEL_1":"LABEL_0"}; 
-}
-
-// Simulated breed API (replace with actual)
-async function breedAPI(blob){
-  await new Promise(r=>setTimeout(r,100));
-  return {prediction:"Barbari Goat"};
-}
-
-// Live scanning loop
-async function liveScan(){
-  if(!scanning){
-    requestAnimationFrame(liveScan);
-    return;
-  }
-  if(requestInProgress){
-    requestAnimationFrame(liveScan);
-    return;
-  }
-  requestInProgress = true;
-  try{
-    const blob = await getFrameBlob();
-    const detectData = await detectionAPI(blob);
-    log("Detection: "+detectData.prediction);
-    if(detectData.prediction === "LABEL_1"){
-      const breedData = await breedAPI(blob);
-      log("Breed: "+breedData.prediction);
-      if(breedData.prediction !== lastBreed){
-        lastBreed = breedData.prediction;
-        scanning = false;
-        showResult(breedData.prediction);
-      }
-    }
-  }catch(e){
-    log("Error: "+e.message);
-  }finally{
-    requestInProgress = false;
-    requestAnimationFrame(liveScan);
-  }
-}
-
-startCamera();
-</script>
-</body>
-</html>
+  return new Promise(resolve => canvas.toBlob(resolve,"image/jpeg",0.8
