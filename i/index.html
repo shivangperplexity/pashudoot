@@ -110,7 +110,7 @@ async function detectBreed(blob){
   try{
     const form = new FormData();
     form.append("file", blob, "frame.jpg");
-    const res = await fetch("https://Shivangguptasih-hf.hf.space/predict",{method:"POST",body:form});
+    const res = await fetch("https://Shivangguptasih-v2.hf.space/predict",{method:"POST",body:form});
     const data = await res.json();
     let label = data.prediction || "Not Identified";
     const normalizedLabel = label.toLowerCase().replace(/\s+/g,'');
