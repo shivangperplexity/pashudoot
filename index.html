@@ -186,7 +186,7 @@ async function handleFile(file){
             const breedForm=new FormData();
             breedForm.append("file",file);
             try{
-                const breedResp=await fetch("https://Shivangguptasih-hf.hf.space/predict",{method:"POST",body:breedForm});
+                const breedResp=await fetch("https://Shivangguptasih-v2.hf.space/predict",{method:"POST",body:breedForm});
                 const breedData=await breedResp.json();
                 if(breedData && breedData.prediction) detectLabel=breedData.prediction;
                 else detectLabel="Not Identified";
