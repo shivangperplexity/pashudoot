@@ -3,28 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Documentation</title>
+    <title>Live Breed Identifier</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
         body {
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #c3d9bc, #dff2e1, #a3c9a8);
             background-attachment: fixed;
             overflow-x: hidden;
-            color: #4a5568;
+            position: relative;
+            height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            padding: 1rem;
+            justify-content: center;
+            padding: 16px;
         }
+
         .glass-container {
             backdrop-filter: blur(25px);
             background-color: rgba(255, 255, 255, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 0 40px 0 rgba(255, 255, 255, 0.5);
+            transition: transform 0.3s ease-in-out;
         }
+
+        .glass-card {
+            backdrop-filter: blur(25px);
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .lucid-sphere {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lucid-sphere::before,
+        .lucid-sphere::after,
+        .lucid-sphere .inner-sphere {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(128, 203, 196, 0.8);
+            animation: pulse-wave 2s infinite;
+        }
+
+        .lucid-sphere .inner-sphere {
+            width: 20px;
+            height: 20px;
+            z-index: 3;
+            background-color: #80CBC4;
+            animation: none;
+        }
+
+        .lucid-sphere::before {
+            width: 40px;
+            height: 40px;
+            opacity: 0.6;
+            animation-delay: 0s;
+        }
+
+        .lucid-sphere::after {
+            width: 60px;
+            height: 60px;
+            opacity: 0.4;
+            animation-delay: 0.5s;
+        }
+
+        @keyframes pulse-wave {
+            0% { transform: scale(0.6); opacity: 0.8; }
+            100% { transform: scale(1.2); opacity: 0; }
+        }
+
+        #camera-feed {
+            width: 100%;
+            height: auto;
+            border-radius: 16px;
+            overflow: hidden;
+            transform: scaleX(-1);
+        }
+
+        #capture-canvas {
+            display: none;
+        }
+        
         .drawer-overlay {
             position: fixed;
             top: 0;
@@ -37,7 +106,11 @@
             visibility: hidden;
             transition: opacity 0.3s, visibility 0.3s;
         }
-        .drawer-overlay.open { opacity: 1; visibility: visible; }
+        .drawer-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        
         .drawer {
             position: fixed;
             top: 0;
@@ -49,44 +122,20 @@
             z-index: 50;
             transition: right 0.3s ease-in-out;
         }
-        .drawer.open { right: 0; }
-        .code-block {
-            background-color: #f1f5f9;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            overflow-x: auto;
-            position: relative;
+        .drawer.open {
+            right: 0;
         }
-        .code-block code {
-            font-family: monospace;
-            font-size: 0.875rem;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            word-wrap: break-word;
+        .info-card {
+            display: none;
         }
-        .code-copy-btn {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            background-color: #cbd5e1;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .code-copy-btn:hover {
-            background-color: #94a3b8;
-        }
-        .logo-circle {
-            border-radius: 50%;
-            overflow: hidden;
-            border: 2px solid #a3c9a8;
+        .info-card.active {
+            display: block;
         }
     </style>
 </head>
-<body class="text-gray-700">
-    <button id="hamburger-btn" class="fixed top-4 right-4 z-50 p-2 glass-container rounded-full shadow-lg">
+<body class="flex flex-col items-center justify-center min-h-screen text-gray-700 p-4">
+
+    <button id="hamburger-btn" class="fixed top-4 right-4 z-50 p-2 glass-card rounded-full shadow-lg">
         <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
         </svg>
@@ -110,162 +159,265 @@
         </nav>
     </div>
 
-    <main class="glass-container rounded-3xl p-6 md:p-10 w-full max-w-4xl shadow-lg">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold mb-2 text-gray-800">API Documentation</h1>
-            <p class="text-gray-600 max-w-2xl mx-auto">
-                Pashu Mitra uses two in-house developed deep learning models hosted on Hugging Face to perform its detection and classification tasks. The API is designed to be simple and easy to integrate into any application.
-            </p>
-        </div>
+    <div class="glass-container rounded-3xl p-6 w-full max-w-sm flex flex-col items-center">
+        
+        <header class="flex flex-col items-center mb-6 w-full">
+            <h1 class="text-3xl font-bold text-center text-gray-800">Live Camera</h1>
+            <p class="text-sm text-gray-500 text-center mt-2">Identify breeds in real-time!</p>
+        </header>
 
-        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8 rounded-lg" role="alert">
-            <p class="font-bold">Important Note on API Endpoints</p>
-            <p class="text-sm">The API endpoints for Hugging Face Spaces are subject to change. The URLs below are examples and may need to be updated. Please refer to our <a href="https://huggingface.co/Spaces/rjsmoke00/cd" target="_blank" class="underline hover:text-yellow-900">CattleLense</a> and <a href="https://huggingface.co/spaces/Shivangguptasih/Creto-ai" target="_blank" class="underline hover:text-yellow-900">Creto.ai</a> Hugging Face Spaces for the most current endpoint URLs.</p>
-        </div>
-
-        <div class="glass-container rounded-2xl p-6 mb-8">
-            <div class="flex items-center gap-4 mb-4">
-                <img src="cl.png" alt="CattleLense Logo" class="w-16 h-16 logo-circle">
-                <h2 class="text-2xl md:text-3xl font-bold text-gray-800">1. CattleLense (Detection)</h2>
-            </div>
-            <p class="text-gray-600 mb-4">
-                This model acts as a preliminary filter, an image classifier that determines if an image contains a cattle, buffalo, or goat. This ensures that the more specific breed classification model is only called on relevant images, improving efficiency and accuracy.
-            </p>
-            
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-800">Endpoint</h3>
-                <div class="code-block">
-                    <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    <code>https://[current-cattle-lens-space-url].hf.space/predict</code>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-800">Method</h3>
-                <div class="code-block">
-                    <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    <code>POST</code>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-800">Request</h3>
-                <p class="text-sm text-gray-600 mb-2">Send a <code>FormData</code> object with the image file.</p>
-                <div class="code-block">
-                    <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    <code>
-file: &lt;input type="file" name="file"&gt;
-                    </code>
-                </div>
-            </div>
-
-            <div>
-                <h3 class="text-lg font-semibold text-gray-800">Response</h3>
-                <p class="text-sm text-gray-600 mb-2">Returns a JSON object with the prediction label.</p>
-                <div class="code-block">
-                    <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    <code>
-{
-  "prediction": "LABEL_1"  // "LABEL_1" for cattle detected, "LABEL_0" otherwise
-}
-                    </code>
-                </div>
+        <div class="w-full relative glass-card rounded-2xl p-2 overflow-hidden">
+            <video id="camera-feed" class="w-full h-auto" autoplay playsinline></video>
+            <canvas id="capture-canvas" class="hidden"></canvas>
+            <div id="no-camera" class="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-gray-200/50 rounded-2xl">
+                <p>Waiting for camera access...</p>
+                <button id="start-camera" class="mt-4 px-4 py-2 bg-emerald-500 text-white font-semibold rounded-lg hover:bg-emerald-600 transition-colors">Start Camera</button>
             </div>
         </div>
 
-        <div class="glass-container rounded-2xl p-6">
-            <div class="flex items-center gap-4 mb-4">
-                <img src="creto.png" alt="Creto.ai Logo" class="w-16 h-16 logo-circle">
-                <h2 class="text-2xl md:text-3xl font-bold text-gray-800">2. Creto.ai (Classification)</h2>
-            </div>
-            <p class="text-gray-600 mb-4">
-                This model classifies the breed of the animal if it has been detected by the CattleLense model. It can identify over 15 common cow, buffalo, and goat breeds found in India.
-            </p>
-            
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-800">Endpoint</h3>
-                <div class="code-block">
-                    <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    <code>https://[current-creto-ai-space-url].hf.space/predict</code>
-                </div>
-            </div>
+        <div class="w-full mt-4 flex justify-around">
+            <button id="switch-camera-btn" class="flex-1 mx-1 px-4 py-2 bg-gray-200/80 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
+                Switch Camera
+            </button>
+        </div>
 
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-800">Method</h3>
-                <div class="code-block">
-                    <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    <code>POST</code>
-                </div>
+        <div id="live-status-box" class="w-full mt-6 p-4 glass-card rounded-2xl flex flex-col items-center hidden">
+            <h2 class="text-lg font-semibold mb-2">Live Status</h2>
+            <div id="lucid-sphere" class="lucid-sphere">
+                <div class="inner-sphere"></div>
             </div>
-
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-800">Request</h3>
-                <p class="text-sm text-gray-600 mb-2">Send a <code>FormData</code> object with the image file.</p>
-                <div class="code-block">
-                    <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    <code>
-file: &lt;input type="file" name="file"&gt;
-                    </code>
-                </div>
-            </div>
-
-            <div>
-                <h3 class="text-lg font-semibold text-gray-800">Response</h3>
-                <p class="text-sm text-gray-600 mb-2">Returns a JSON object with the predicted breed name.</p>
-                <div class="code-block">
-                    <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    <code>
-{
-  "prediction_index": 5,
-  "prediction": "deoni",
-  "score": 0.998765
-}
-                    </code>
-                </div>
+            <p id="live-progress-text" class="text-sm text-gray-500 mt-4 text-center"></p>
+            <div id="progress-bar-container" class="w-full h-2 bg-gray-200 rounded-full mt-4 overflow-hidden">
+                <div id="progress-bar" class="h-full bg-emerald-500 transition-all duration-300 ease-in-out" style="width: 0%;"></div>
             </div>
         </div>
 
-        <div class="glass-container rounded-2xl p-6 mt-8">
-            <h2 class="text-2xl md:text-3xl font-bold mb-4 text-gray-800 text-center">Example Usage (JavaScript)</h2>
-            <p class="text-gray-600 mb-4">
-                Here's how you can chain the two APIs to first detect an animal and then classify its breed.
-            </p>
-            <div class="code-block">
-                <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                <code>
-async function predictBreed(file) {
-    // Step 1: Detect if the image contains a cattle
-    const detectFormData = new FormData();
-    detectFormData.append("file", file);
-    const detectResp = await fetch("https://sih20254-cattle-lens.hf.space/predict", { method: "POST", body: detectFormData });
-    const detectData = await detectResp.json();
-    const isCattleDetected = detectData?.prediction === "LABEL_1";
-
-    if (!isCattleDetected) {
-        return "No cattle detected.";
-    }
-
-    // Step 2: If cattle is detected, classify the breed
-    const breedFormData = new FormData();
-    breedFormData.append("file", file);
-    const breedResp = await fetch("https://Shivangguptasih-Creto-ai.hf.space/predict", { method: "POST", body: breedFormData });
-    const breedData = await breedResp.json();
-    let breedLabel = breedData?.prediction ? breedData.prediction.toLowerCase() : "Not Identified";
-
-    // Optional: Format the breed name
-    const formattedBreed = breedLabel.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    return formattedBreed;
-}
-                </code>
+        <div id="live-results-box" class="w-full mt-6 p-4 glass-card rounded-2xl hidden">
+            <h2 class="text-lg font-semibold mb-2 text-center">Live Identification</h2>
+            <div class="mb-4">
+                <span class="text-sm text-gray-500">Predicted Breed:</span>
+                <p id="live-breed-name" class="text-xl font-bold text-gray-900">...</p>
+            </div>
+            <div class="mb-2">
+                <span class="text-sm text-gray-500">Origin:</span>
+                <p id="live-breed-origin" class="text-gray-800">...</p>
+            </div>
+            <div class="mb-2">
+                <span class="text-sm text-gray-500">Physical Traits:</span>
+                <p id="live-breed-traits" class="text-gray-800">...</p>
+            </div>
+            <div class="mb-2">
+                <span class="text-sm text-gray-500">Temperament:</span>
+                <p id="live-breed-temperament" class="text-gray-800">...</p>
+            </div>
+            <div class="mb-4">
+                <span class="text-sm text-gray-500">Milk Yield:</span>
+                <p id="live-breed-milk-yield" class="text-gray-800">...</p>
             </div>
         </div>
-    </main>
+        
+    </div>
 
     <script>
+        const video = document.getElementById('camera-feed');
+        const canvas = document.getElementById('capture-canvas');
+        const startCameraBtn = document.getElementById('start-camera');
+        const switchCameraBtn = document.getElementById('switch-camera-btn');
+        const noCameraSection = document.getElementById('no-camera');
+        const liveStatusBox = document.getElementById('live-status-box');
+        const liveProgressText = document.getElementById('live-progress-text');
+        const liveResultsBox = document.getElementById('live-results-box');
+        const liveBreedName = document.getElementById('live-breed-name');
+        const liveBreedOrigin = document.getElementById('live-breed-origin');
+        const liveBreedTraits = document.getElementById('live-breed-traits');
+        const liveBreedTemperament = document.getElementById('live-breed-temperament');
+        const liveBreedMilkYield = document.getElementById('live-breed-milk-yield');
+        const progressBarContainer = document.getElementById('progress-bar-container');
+        const progressBar = document.getElementById('progress-bar');
         const hamburgerBtn = document.getElementById('hamburger-btn');
         const drawer = document.getElementById('drawer');
         const drawerOverlay = document.getElementById('drawer-overlay');
         const drawerCloseBtn = document.getElementById('drawer-close-btn');
+
+        let currentStream = null;
+        let isFrontCamera = true;
+        let breedResponses = [];
+        let breedPromises = [];
+        const requiredResponses = 15;
+        let collecting = false;
+        let lastApiCallTime = 0;
+        const apiCallInterval = 750; // Milliseconds
+
+        // Updated API Endpoints
+        const CATTLE_LENSE_API = "https://sih20254-cattle-lens.hf.space/predict";
+        const CRETO_AI_API = "https://Shivangguptasih-Creto-ai.hf.space/predict";
+
+        const breedInfo = {
+            "Pandharpuri": { origin: "Maharashtra, India", temperament: "Docile and resilient", physicalTraits: "Medium-sized, black-grey coat, twisted horns. Known for their milking ability and adaptability to hot climate.", milkYield: "5-8 L/day", type: "Cow" },
+            "Barbari": { origin: "Rajasthan, India", temperament: "Friendly and social", physicalTraits: "Small-sized, compact body with a distinctive white coat with brown patches. Horns are small and spiraled.", milkYield: "1-2 L/day", type: "Goat" },
+            "Black Bengal": { origin: "West Bengal, India", temperament: "Hardy and non-aggressive", physicalTraits: "Small and short-legged, with a black coat. Highly fertile and known for their meat quality.", milkYield: "1-2 L/day", type: "Goat" },
+            "Bargur": { origin: "Tamil Nadu, India", temperament: "Active and quick-footed", physicalTraits: "Medium-sized, brown or grey coat with white markings. Known for speed and endurance.", milkYield: "3-5 L/day", type: "Cow" },
+            "Deoni": { origin: "Maharashtra/Karnataka/Andhra Pradesh", temperament: "Calm and docile", physicalTraits: "Large-sized, white or black-spotted coat. Prominent forehead and long ears. A dual-purpose breed.", milkYield: "3-8 L/day", type: "Cow" },
+            "Gir": { origin: "Gujarat, India", temperament: "Gentle and calm", physicalTraits: "Large-sized, red or spotted coat. Distinctive rounded forehead and long, floppy ears. Known for high-quality A2 milk.", milkYield: "10-15 L/day", type: "Cow" },
+            "Guzerat": { origin: "Gujarat, India", temperament: "Calm and quiet", physicalTraits: "Large-sized, grey or white coat. Very prominent horns that curve upward. A powerful draught and dairy breed.", milkYield: "6-10 L/day", type: "Cow" },
+            "Hallikar": { origin: "Karnataka, India", temperament: "Strong and spirited", physicalTraits: "Lean, muscular body with a dark grey or black coat. Long, pointed horns that curve backwards. Known for draught power.", milkYield: "2-5 L/day", type: "Cow" },
+            "Holstein": { origin: "Netherlands", temperament: "Gentle and quiet", physicalTraits: "Very large, black and white patterned coat. Recognizable by their massive size and prominent udder. The world's leading dairy breed.", milkYield: "20-30 L/day", type: "Cow" },
+            "Jaffrabadi": { origin: "Gujarat, India", temperament: "Bold and powerful", physicalTraits: "Massive body, black coat, and a very large, bulging forehead. Horns are heavy and droop downwards. Known for high milk fat content.", milkYield: "6-10 L/day", type: "Buffalo" },
+            "Jersey": { origin: "Jersey Island, UK", temperament: "Docile and curious", physicalTraits: "Small-sized, fawn-colored coat. Known for their large eyes and refined features. They produce milk with a high butterfat content.", milkYield: "12-20 L/day", type: "Cow" },
+            "Murrah": { origin: "Haryana, India", temperament: "Placid and easy to manage", physicalTraits: "Jet black coat, short, tightly curved horns. Known for their high milk yield and adaptability.", milkYield: "8-12 L/day", type: "Buffalo" },
+            "Nili Ravi": { origin: "Pakistan", temperament: "Calm and gentle", physicalTraits: "Usually black coat, often with white markings on the forehead, face, and legs. Distinctive curled horns. Known for high milk production.", milkYield: "7-12 L/day", type: "Buffalo" },
+            "Red Sindhi": { origin: "Sindh (Pakistan/India)", temperament: "Friendly and easy to handle", physicalTraits: "Medium-sized, deep red coat. Prominent forehead and long, droopy ears. A hardy and heat-tolerant dairy breed.", milkYield: "8-12 L/day", type: "Cow" },
+            "Sahiwal": { origin: "Punjab region", temperament: "Calm and docile", physicalTraits: "Medium-sized, reddish-brown coat. Characterized by a loose dewlap and long ears. One of the best dairy breeds in India.", milkYield: "12-18 L/day", type: "Cow" },
+            "Sirohi": { origin: "Rajasthan, India", temperament: "Hardy and adaptable", physicalTraits: "Medium-sized, with a brown coat speckled with white patches. Ears are long and leaf-like. A dual-purpose goat known for meat and milk.", milkYield: "1-2 L/day", type: "Goat" },
+            "Not Identified": { origin: "-", temperament: "-", physicalTraits: "-", milkYield: "-", type: "N/A" }
+        };
+
+        const getMostFrequent = (arr) => {
+            if (arr.length === 0) return "Not Identified";
+            const counts = {};
+            let maxCount = 0;
+            let mostFrequent = arr[0];
+            for (const item of arr) {
+                counts[item] = (counts[item] || 0) + 1;
+                if (counts[item] > maxCount) {
+                    maxCount = counts[item];
+                    mostFrequent = item;
+                }
+            }
+            return mostFrequent;
+        };
+
+        const startCamera = async (constraints) => {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                currentStream = stream;
+                noCameraSection.classList.add('hidden');
+                liveStatusBox.classList.remove('hidden');
+                startAnalysis();
+            } catch (err) {
+                console.error("Camera access denied:", err);
+                noCameraSection.classList.remove('hidden');
+                liveProgressText.textContent = "Camera access denied. Please allow camera permissions.";
+            }
+        };
+
+        const switchCamera = () => {
+            isFrontCamera = !isFrontCamera;
+            startCamera({ video: { facingMode: isFrontCamera ? 'user' : 'environment' } });
+            video.style.transform = isFrontCamera ? 'scaleX(-1)' : 'scaleX(1)';
+        };
+
+        switchCameraBtn.addEventListener('click', switchCamera);
+        startCameraBtn.addEventListener('click', () => {
+            startCamera({ video: { facingMode: 'environment' } });
+            video.style.transform = 'scaleX(1)';
+        });
+
+        const startAnalysis = () => {
+            if (collecting) return;
+            collecting = true;
+            breedPromises = [];
+            liveResultsBox.classList.add('hidden');
+            progressBarContainer.classList.remove('hidden');
+            liveProgressText.textContent = "Searching for a cattle...";
+            lastApiCallTime = 0;
+
+            const animateLoop = (timestamp) => {
+                if (!collecting) return;
+                
+                if (timestamp - lastApiCallTime > apiCallInterval) {
+                    lastApiCallTime = timestamp;
+                    analyzeFrame();
+                }
+
+                requestAnimationFrame(animateLoop);
+            };
+            
+            const analyzeFrame = async () => {
+                if (video.readyState !== 4 || !collecting) return;
+                
+                if (breedPromises.length >= requiredResponses) {
+                    return;
+                }
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                canvas.toBlob(async (blob) => {
+                    const detectFormData = new FormData();
+                    detectFormData.append("file", blob, "camera-frame.jpg");
+
+                    try {
+                        const detectResp = await fetch(CATTLE_LENSE_API, { method: "POST", body: detectFormData });
+                        const detectData = await detectResp.json();
+                        const detectLabel = (detectData && detectData.prediction) ? detectData.prediction : "Not Identified";
+
+                        if (detectLabel === "LABEL_1") {
+                            const breedFormData = new FormData();
+                            breedFormData.append("file", blob, "camera-frame.jpg");
+
+                            const breedPromise = fetch(CRETO_AI_API, { method: "POST", body: breedFormData })
+                                .then(response => response.json())
+                                .then(breedData => {
+                                    return breedData?.prediction?.toLowerCase() || "not identified";
+                                })
+                                .catch(e => {
+                                    console.error("Creto.ai API error:", e);
+                                    return "not identified";
+                                });
+                            
+                            breedPromises.push(breedPromise);
+
+                            const progress = Math.min(breedPromises.length, requiredResponses);
+                            liveProgressText.textContent = `Uploading ${progress}/${requiredResponses} frames...`;
+                            progressBar.style.width = `${(progress / requiredResponses) * 100}%`;
+
+                            if (breedPromises.length >= requiredResponses) {
+                                liveProgressText.textContent = "Analyzing results...";
+                                progressBarContainer.classList.add('hidden');
+                                await Promise.all(breedPromises).then(results => {
+                                    const finalBreed = getMostFrequent(results.filter(r => r !== "not identified"));
+                                    displayResult(finalBreed);
+                                    liveStatusBox.classList.add('hidden');
+                                    collecting = false;
+                                });
+                            }
+                        } else {
+                            liveProgressText.textContent = "Searching for a cattle...";
+                        }
+                    } catch (err) {
+                        console.error("CattleLense API error:", err);
+                        liveProgressText.textContent = "Analysis failed. Retrying...";
+                    }
+                }, 'image/jpeg');
+            };
+
+            requestAnimationFrame(animateLoop);
+        };
+
+        const displayResult = (breedName) => {
+            const formattedBreed = breedName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            const info = breedInfo[formattedBreed] || breedInfo["Not Identified"];
+            
+            liveBreedName.textContent = formattedBreed;
+            liveBreedOrigin.textContent = info.origin;
+            liveBreedTraits.textContent = info.physicalTraits;
+            liveBreedTemperament.textContent = info.temperament;
+            liveBreedMilkYield.textContent = info.milkYield;
+
+            liveResultsBox.classList.remove('hidden');
+        };
+
+        window.onload = () => {
+            startCamera({ video: { facingMode: 'environment' } });
+            video.style.transform = 'scaleX(1)';
+        };
 
         hamburgerBtn.addEventListener('click', () => {
             drawer.classList.add('open');
@@ -279,19 +431,6 @@ async function predictBreed(file) {
             drawer.classList.remove('open');
             drawerOverlay.classList.remove('open');
         });
-
-        function copyCode(button) {
-            const codeBlock = button.parentElement;
-            const code = codeBlock.querySelector('code').innerText;
-            navigator.clipboard.writeText(code).then(() => {
-                button.textContent = 'Copied!';
-                setTimeout(() => {
-                    button.textContent = 'Copy';
-                }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy text: ', err);
-            });
-        }
     </script>
 </body>
 </html>
