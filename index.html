@@ -190,7 +190,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1.5rem; /* Space between steps and arrows */
+            gap: 1.5rem;
         }
 
         .workflow-step {
@@ -198,10 +198,10 @@
             flex-direction: column;
             align-items: center;
             padding: 1.5rem 1rem;
-            border-radius: 1.5rem; /* More rounded corners for consistency */
+            border-radius: 1.5rem;
             text-align: center;
-            width: 100%; /* Ensure steps take full width */
-            max-width: 250px; /* Optional: limit individual step width */
+            width: 100%;
+            max-width: 250px;
             transform: translateY(20px);
             opacity: 0;
         }
@@ -211,28 +211,27 @@
         }
 
         .icon-circle {
-            width: 56px; /* Larger icon circle */
+            width: 56px;
             height: 56px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 0.5rem;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05); /* Subtle inner shadow */
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            overflow: hidden; /* This is key to crop the image */
         }
         
         .icon-circle svg {
-            width: 28px; /* Larger icons */
+            width: 28px;
             height: 28px;
         }
-        /* Adjusted for image logos within icon-circle */
+        
         .icon-circle img {
-            width: 40px; /* Make logos slightly larger than default SVG icons */
-            height: 40px;
-            object-fit: contain; /* Ensure logo fits without distortion */
-            padding: 4px; /* Add some padding to prevent logos from touching edges */
+            width: 100%; /* Make image fill the circle */
+            height: 100%;
+            object-fit: cover; /* This will crop the image to fit the circle */
         }
-
 
         .arrow-container {
             display: flex;
@@ -241,10 +240,9 @@
             transform: translateY(20px);
         }
         .arrow-container svg {
-            transform: rotate(0deg); /* Downward arrow */
+            transform: rotate(0deg);
         }
 
-        /* Keyframe for fadeInUp (already defined, ensuring compatibility) */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -446,7 +444,6 @@
         </div>
     </div>
 
-
     <script>
         const dropArea = document.getElementById('dropArea');
         const fileInput = document.getElementById('imageUpload');
@@ -552,7 +549,7 @@
                 
                 const breedFormData = new FormData();
                 breedFormData.append("file", file);
-                const breedResp = await fetch("https://Shivangguptasih-v2.hf.space/predict", { method: "POST", body: breedFormData });
+                const breedResp = await fetch("https://Shivangguptasih-Creto-ai.hf.space/predict", { method: "POST", body: breedFormData });
                 const breedData = await breedResp.json();
                 let breedLabel = breedData?.prediction ? breedData.prediction.toLowerCase() : "Not Identified";
 
