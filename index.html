@@ -233,6 +233,23 @@
             object-fit: cover; /* This will crop the image to fit the circle */
         }
 
+        /* AI Models Used Logos Specific Styling */
+        .model-logo-circle {
+            width: 40px; /* Adjust size as needed */
+            height: 40px; /* Adjust size as needed */
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0; /* Prevent the image from shrinking */
+        }
+        .model-logo-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         .arrow-container {
             display: flex;
             justify-content: center;
@@ -349,7 +366,9 @@
         
         <div class="glass-card rounded-2xl p-4 mb-4">
             <div class="flex items-center justify-center mb-2">
-                <img src="cl.png" alt="CattleLense Logo" class="w-10 h-10 mr-2">
+                <div class="model-logo-circle mr-2">
+                    <img src="cl.png" alt="CattleLense Logo" class="rounded-full">
+                </div>
                 <h3 class="text-lg font-bold text-gray-800">1. CattleLense</h3>
             </div>
             <p class="text-sm text-gray-600">
@@ -369,7 +388,9 @@
 
         <div class="glass-card rounded-2xl p-4 mb-4">
             <div class="flex items-center justify-center mb-2">
-                <img src="creto.png" alt="Creto.ai Logo" class="w-10 h-10 mr-2">
+                <div class="model-logo-circle mr-2">
+                    <img src="creto.png" alt="Creto.ai Logo" class="rounded-full">
+                </div>
                 <h3 class="text-lg font-bold text-gray-800">2. Creto.ai</h3>
             </div>
             <p class="text-sm text-gray-600">
@@ -443,7 +464,6 @@
             </div>
         </div>
     </div>
-
     <script>
         const dropArea = document.getElementById('dropArea');
         const fileInput = document.getElementById('imageUpload');
@@ -535,7 +555,7 @@
             try {
                 const detectFormData = new FormData();
                 detectFormData.append("file", file);
-                const detectResp = await fetch("https://sih20254-cattle-lens.hf.space/predict", { method: "POST", body: detectFormData });
+                const detectResp = await fetch("https://rjsmoke00-cd.hf.space/predict", { method: "POST", body: detectFormData });
                 const detectData = await detectResp.json();
                 const isCattleDetected = detectData?.prediction === "LABEL_1";
 
