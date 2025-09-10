@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #c3d9bc, #dff2e1, #a3c9a8);
+            background-attachment: fixed;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .glass-container {
+            backdrop-filter: blur(25px);
+            background-color: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 40px 0 rgba(255, 255, 255, 0.5);
+        }
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 40;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .drawer-overlay.open { opacity: 1; visibility: visible; }
+        .drawer {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 80%;
+            max-width: 300px;
+            height: 100%;
+            padding: 2rem;
+            z-index: 50;
+            transition: right 0.3s ease-in-out;
+        }
+        .drawer.open { right: 0; }
+    </style>
+</head>
+<body class="text-gray-700">
+    <!-- Hamburger Menu Button -->
+    <button id="hamburger-btn" class="fixed top-4 right-4 z-50 p-2 glass-container rounded-full shadow-lg">
+        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+        </svg>
+    </button>
+
+    <!-- Navigation Drawer -->
+    <div id="drawer-overlay" class="drawer-overlay"></div>
+    <div id="drawer" class="drawer glass-container shadow-xl">
+        <div class="flex justify-end">
+            <button id="drawer-close-btn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <nav class="flex flex-col gap-4 mt-8">
+            <a href="index.html" class="py-2 px-4 rounded-lg font-semibold text-gray-700 hover:bg-white/50 transition-colors">Home</a>
+            <a href="live_camera.html" class="py-2 px-4 rounded-lg font-semibold text-gray-700 hover:bg-white/50 transition-colors">Detect from Live Camera</a>
+            <a href="about.html" class="py-2 px-4 rounded-lg font-semibold text-gray-700 hover:bg-white/50 transition-colors">About</a>
+            <a href="developers.html" class="py-2 px-4 rounded-lg font-semibold text-gray-700 hover:bg-white/50 transition-colors">Developers</a>
+            <a href="api.html" class="py-2 px-4 rounded-lg font-semibold text-gray-700 hover:bg-white/50 transition-colors">API Documentation</a>
+        </nav>
+    </div>
+
+    <div class="glass-container rounded-3xl p-6 w-full max-w-sm text-center">
+        <h1 class="text-2xl md:text-3xl font-bold mb-4 text-gray-800">About Pashu Mitra</h1>
+        <p class="mb-4 text-gray-600">
+            Pashu Mitra is a revolutionary platform designed to empower farmers and livestock owners with the power of artificial intelligence. Our mission is to provide an easy-to-use tool for quick and accurate cattle breed identification, helping users make informed decisions about their livestock.
+        </p>
+        <p class="text-gray-600">
+            By leveraging our in-house developed deep learning models, **CattleLense** and **Creto.ai**, we aim to simplify the process of livestock management, promoting better health and productivity for rural communities. We are committed to building a tool that is not only accurate but also accessible and user-friendly for everyone.
+        </p>
+    </div>
+
+    <script>
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const drawer = document.getElementById('drawer');
+        const drawerOverlay = document.getElementById('drawer-overlay');
+        const drawerCloseBtn = document.getElementById('drawer-close-btn');
+
+        hamburgerBtn.addEventListener('click', () => {
+            drawer.classList.add('open');
+            drawerOverlay.classList.add('open');
+        });
+        drawerCloseBtn.addEventListener('click', () => {
+            drawer.classList.remove('open');
+            drawerOverlay.classList.remove('open');
+        });
+        drawerOverlay.addEventListener('click', () => {
+            drawer.classList.remove('open');
+            drawerOverlay.classList.remove('open');
+        });
+    </script>
+</body>
+</html>
