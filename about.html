@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Us</title>
+    <title>Pashu Mitra - About</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
@@ -12,11 +12,7 @@
             background: linear-gradient(135deg, #c3d9bc, #dff2e1, #a3c9a8);
             background-attachment: fixed;
             overflow-x: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 1rem;
+            color: #4a5568;
         }
         .glass-container {
             backdrop-filter: blur(25px);
@@ -49,17 +45,47 @@
             transition: right 0.3s ease-in-out;
         }
         .drawer.open { right: 0; }
+        .flowchart-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .flowchart-arrow {
+            width: 30px;
+            height: 1px;
+            background-color: #4a5568;
+            margin: 1rem 0;
+            position: relative;
+        }
+        .flowchart-arrow::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -5px;
+            border-left: 5px solid #4a5568;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            transform: translateY(-50%);
+        }
+        .rotated-arrow {
+            transform: rotate(90deg);
+        }
+        .logo-circle {
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #a3c9a8;
+        }
     </style>
 </head>
-<body class="text-gray-700">
-    <!-- Hamburger Menu Button -->
+<body class="flex justify-center items-center min-h-screen p-4 md:p-8">
+
     <button id="hamburger-btn" class="fixed top-4 right-4 z-50 p-2 glass-container rounded-full shadow-lg">
         <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
         </svg>
     </button>
 
-    <!-- Navigation Drawer -->
     <div id="drawer-overlay" class="drawer-overlay"></div>
     <div id="drawer" class="drawer glass-container shadow-xl">
         <div class="flex justify-end">
@@ -78,15 +104,151 @@
         </nav>
     </div>
 
-    <div class="glass-container rounded-3xl p-6 w-full max-w-sm text-center">
-        <h1 class="text-2xl md:text-3xl font-bold mb-4 text-gray-800">About Pashu Mitra</h1>
-        <p class="mb-4 text-gray-600">
-            Pashu Mitra is a revolutionary platform designed to empower farmers and livestock owners with the power of artificial intelligence. Our mission is to provide an easy-to-use tool for quick and accurate cattle breed identification, helping users make informed decisions about their livestock.
-        </p>
-        <p class="text-gray-600">
-            By leveraging our in-house developed deep learning models, **CattleLense** and **Creto.ai**, we aim to simplify the process of livestock management, promoting better health and productivity for rural communities. We are committed to building a tool that is not only accurate but also accessible and user-friendly for everyone.
-        </p>
-    </div>
+    <main class="w-full max-w-5xl">
+        <div class="glass-container rounded-3xl p-6 md:p-10 mb-8 w-full text-center shadow-lg">
+            <div class="flex flex-col items-center mb-4">
+                <img src="logo.png" alt="Pashu Mitra Logo" class="w-24 h-24 mb-4 logo-circle">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-800">About Pashu Mitra</h1>
+            </div>
+            <p class="mb-4 text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                Pashu Mitra is a revolutionary platform that empowers farmers and livestock owners with the power of artificial intelligence. Our mission is to provide an easy-to-use tool for quick and accurate cattle breed identification, helping users make informed decisions about their livestock.
+            </p>
+            <p class="text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                By leveraging our in-house developed deep learning models, **CattleLense** and **Creto.ai**, we aim to simplify the process of livestock management, promoting better health and productivity for rural communities. We are committed to building a tool that is not only accurate but also accessible and user-friendly for everyone.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <div class="glass-container rounded-3xl p-6 shadow-lg flex flex-col items-center text-center">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">The Problem</h2>
+                <div class="flex flex-col items-center">
+                    <img src="bpa.png" alt="BPA App Logo" class="w-24 h-24 mb-4 logo-circle">
+                    <p class="text-gray-600 leading-relaxed">
+                        In the **Bharat Pashudhan App (BPA)**, breed misclassification by Field Level Workers (FLWs) is common. This manual judgment leads to incorrect registrations, which reduces the quality of crucial data used for breeding, nutrition, disease control, and policy planning.
+                    </p>
+                </div>
+            </div>
+
+            <div class="glass-container rounded-3xl p-6 shadow-lg flex flex-col items-center text-center">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">The Solution</h2>
+                <p class="text-gray-600 mb-4 leading-relaxed">
+                    Pashu Mitra is an AI-powered platform that uses image recognition to accurately detect and classify animal breeds. It uses two powerful models:
+                </p>
+                <div class="flex flex-col items-center gap-4 w-full">
+                    <div class="flex items-center gap-4 p-4 rounded-xl w-full">
+                        <img src="cl.png" alt="CattleLense Logo" class="w-16 h-16 logo-circle flex-shrink-0">
+                        <div class="text-left">
+                            <h3 class="text-xl font-semibold text-gray-800">CattleLense</h3>
+                            <p class="text-sm text-gray-600">Our detection model that filters valid cow, buffalo, or goat images.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 p-4 rounded-xl w-full">
+                        <img src="creto.png" alt="Creto.ai Logo" class="w-16 h-16 logo-circle flex-shrink-0">
+                        <div class="text-left">
+                            <h3 class="text-xl font-semibold text-gray-800">Creto.ai</h3>
+                            <p class="text-sm text-gray-600">Our breed model that identifies the breed from over 15 common breeds with high accuracy.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-container rounded-3xl p-6 shadow-lg flex flex-col items-center text-center">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Our Impact</h2>
+                <ul class="text-left text-gray-600 space-y-3 list-none p-0">
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-500 font-bold text-lg">✓</span>
+                        <span>Minimizes breed misclassification in BPA.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-500 font-bold text-lg">✓</span>
+                        <span>Creates standardized and reliable data for government use.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-500 font-bold text-lg">✓</span>
+                        <span>Saves time and effort for FLWs with easy, AI-assisted registration.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-500 font-bold text-lg">✓</span>
+                        <span>Improves accuracy for genetic improvement, disease control, and targeted schemes.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="glass-container rounded-3xl p-6 md:p-10 my-8 shadow-lg w-full text-center">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">How It Works</h2>
+            <div class="flex flex-col md:flex-row items-center justify-center space-y-6 md:space-y-0 md:space-x-8">
+                
+                <div class="flowchart-step">
+                    <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center border-2 border-green-400 mb-2 shadow-inner">
+                        <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.89-1.78A2 2 0 0115.07 4h1.86a2 2 0 012 2v.93a2 2 0 00.89 1.664l1.78.89a2 2 0 01.89 1.664V17a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z"></path></svg>
+                    </div>
+                    <p class="text-sm font-medium">1. FLW Clicks Photo</p>
+                </div>
+
+                <div class="flowchart-arrow rotated-arrow md:rotate-0"></div>
+
+                <div class="flowchart-step">
+                    <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center border-2 border-green-400 mb-2 shadow-inner">
+                        <img src="cl.png" alt="CattleLense Logo" class="w-12 h-12 logo-circle">
+                    </div>
+                    <p class="text-sm font-medium">2. CattleLense Filters Images</p>
+                </div>
+
+                <div class="flowchart-arrow rotated-arrow md:rotate-0"></div>
+
+                <div class="flowchart-step">
+                    <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center border-2 border-green-400 mb-2 shadow-inner">
+                        <img src="creto.png" alt="Creto.ai Logo" class="w-12 h-12 logo-circle">
+                    </div>
+                    <p class="text-sm font-medium">3. Creto.ai Identifies Breed</p>
+                </div>
+
+                <div class="flowchart-arrow rotated-arrow md:rotate-0"></div>
+
+                <div class="flowchart-step">
+                    <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center border-2 border-green-400 mb-2 shadow-inner">
+                        <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.001 12.001 0 002.944 12c.071 1.706.52 3.393 1.353 4.965M18 10v4m0 0a2 2 0 01-2 2H8a2 2 0 01-2-2v-4a2 2 0 012-2h8a2 2 0 012 2z"></path></svg>
+                    </div>
+                    <p class="text-sm font-medium">4. Instant, Accurate Prediction</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <div class="glass-container rounded-3xl p-6 shadow-lg">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 text-center">How the Government Can Use It</h2>
+                <ul class="text-left text-gray-600 space-y-3 list-none p-0">
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-500 font-bold text-lg">✓</span>
+                        <span>Integrate with BPA as a real-time breed validation tool.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-500 font-bold text-lg">✓</span>
+                        <span>Assist FLWs with instant, AI-backed breed confirmation.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-500 font-bold text-lg">✓</span>
+                        <span>Ensure nationwide accuracy in cow, buffalo, and goat data.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-green-500 font-bold text-lg">✓</span>
+                        <span>Strengthen decision-making for policies, subsidies, and breeding programs.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="glass-container rounded-3xl p-6 shadow-lg text-center flex flex-col justify-center">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Pashu Mitra =</h2>
+                <p class="text-gray-600 font-semibold text-lg">
+                    Reliable Data + Empowered FLWs + Smarter Decisions
+                </p>
+            </div>
+        </div>
+
+    </main>
 
     <script>
         const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -107,5 +269,6 @@
             drawerOverlay.classList.remove('open');
         });
     </script>
+
 </body>
 </html>
