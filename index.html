@@ -13,6 +13,12 @@
             background: linear-gradient(135deg, #c3d9bc, #dff2e1, #a3c9a8);
             background-attachment: fixed;
             overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
         }
 
         .glass-container {
@@ -84,6 +90,7 @@
             border: 2px dashed #9ca3af;
             border-radius: 16px;
             transition: transform 0.3s ease, background-color 0.3s ease;
+            text-align: center;
         }
 
         .upload-container:hover, .upload-container.dragover {
@@ -240,7 +247,10 @@
 
         <!-- Result Box -->
         <div id="result-box" class="w-full mt-6 p-4 glass-card rounded-2xl flex flex-col items-center hidden fade-in-up">
-            <h2 id="result-title" class="text-lg font-bold text-center mb-4"></h2>
+            <div class="w-full flex flex-col items-center mb-4">
+                <img id="uploaded-image" class="rounded-xl w-full max-h-48 object-contain mb-4">
+                <h2 id="result-title" class="text-lg font-bold text-center"></h2>
+            </div>
             <div id="breed-info-display" class="w-full text-center">
                 <div class="mb-4">
                     <span class="text-sm text-gray-500">Predicted Breed:</span>
@@ -329,6 +339,7 @@
         const progressBar = document.getElementById('progress-bar');
         const resultBox = document.getElementById('result-box');
         const resultTitle = document.getElementById('result-title');
+        const uploadedImage = document.getElementById('uploaded-image');
         const breedName = document.getElementById('breed-name');
         const breedOrigin = document.getElementById('breed-origin');
         const breedTraits = document.getElementById('breed-traits');
@@ -401,10 +412,12 @@
             loadingUI.classList.remove("hidden");
             resultBox.classList.add("hidden");
             noCattleModal.classList.remove("visible");
-            
-            await runSteps(stepsArr.length);
 
-            let breedLabel = "Not Identified";
+            const imageUrl = URL.createObjectURL(file);
+            uploadedImage.src = imageUrl;
+            
+            progressText.textContent = stepsArr[0] + '...';
+
             try {
                 const detectFormData = new FormData();
                 detectFormData.append("file", file);
@@ -412,34 +425,38 @@
                 const detectData = await detectResp.json();
                 const isCattleDetected = detectData?.prediction === "LABEL_1";
 
-                if (isCattleDetected) {
-                    const breedFormData = new FormData();
-                    breedFormData.append("file", file);
-                    const breedResp = await fetch("https://Shivangguptasih-v2.hf.space/predict", { method: "POST", body: breedFormData });
-                    const breedData = await breedResp.json();
-                    breedLabel = breedData?.prediction ? breedData.prediction.toLowerCase() : "Not Identified";
+                if (!isCattleDetected) {
+                    loadingUI.classList.add("hidden");
+                    noCattleModal.classList.add("visible");
+                    return;
                 }
-            } catch (err) {
-                console.error("API call error:", err);
-                breedLabel = "Not Identified";
-            } finally {
+
+                progressText.textContent = stepsArr[1] + '...';
+                
+                const breedFormData = new FormData();
+                breedFormData.append("file", file);
+                const breedResp = await fetch("https://Shivangguptasih-v2.hf.space/predict", { method: "POST", body: breedFormData });
+                const breedData = await breedResp.json();
+                let breedLabel = breedData?.prediction ? breedData.prediction.toLowerCase() : "Not Identified";
+
                 loadingUI.classList.add("hidden");
                 
-                if (breedLabel === "not identified") {
-                    noCattleModal.classList.add("visible");
-                } else {
-                    const formattedBreed = breedLabel.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                    const info = breedInfo[formattedBreed] || breedInfo["Not Identified"];
-                    
-                    resultTitle.textContent = "✅ Cattle Detected!";
-                    breedName.textContent = formattedBreed;
-                    breedOrigin.textContent = info.origin;
-                    breedTraits.textContent = info.physicalTraits;
-                    breedTemperament.textContent = info.temperament;
-                    breedMilkYield.textContent = info.milkYield;
-                    
-                    resultBox.classList.remove("hidden");
-                }
+                const formattedBreed = breedLabel.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                const info = breedInfo[formattedBreed] || breedInfo["Not Identified"];
+                
+                resultTitle.textContent = "✅ Cattle Detected!";
+                breedName.textContent = formattedBreed;
+                breedOrigin.textContent = info.origin;
+                breedTraits.textContent = info.physicalTraits;
+                breedTemperament.textContent = info.temperament;
+                breedMilkYield.textContent = info.milkYield;
+                
+                resultBox.classList.remove("hidden");
+                
+            } catch (err) {
+                console.error("API call error:", err);
+                loadingUI.classList.add("hidden");
+                noCattleModal.classList.add("visible");
             }
         }
 
