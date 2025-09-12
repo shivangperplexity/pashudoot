@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pashu Mitra - Workflow</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvas library for capturing the page content -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
@@ -134,7 +136,7 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4 text-gray-700">
 
-    <div class="glass-container rounded-3xl p-6 mt-8 w-full max-w-4xl flex flex-col items-center">
+    <div id="flowchart-content" class="glass-container rounded-3xl p-6 mt-8 w-full max-w-4xl flex flex-col items-center">
         <h1 class="text-3xl font-bold text-gray-800 text-center mb-8">Pashu Mitra Workflow</h1>
 
         <div class="flex flex-col items-center gap-6">
@@ -201,5 +203,43 @@
         </div>
         
     </div>
+
+    <!-- Download button -->
+    <button id="downloadBtn" class="mt-8 px-6 py-2 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 transition-colors shadow-lg">Download Flowchart</button>
+    
+    <script>
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const downloadBtn = document.getElementById('downloadBtn');
+            const originalText = downloadBtn.textContent;
+            downloadBtn.textContent = 'Generating...';
+            downloadBtn.disabled = true;
+
+            setTimeout(() => {
+                const flowchartContainer = document.getElementById('flowchart-content');
+
+                html2canvas(flowchartContainer, {
+                    scale: 2, // Increase scale for higher resolution
+                    backgroundColor: null, // Ensures transparent background is handled correctly
+                    useCORS: true // Required for images hosted on external servers
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'pashu-mitra-flowchart.png';
+                    link.href = canvas.toDataURL('image/png');
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    
+                    document.body.removeChild(link);
+                    
+                    downloadBtn.textContent = originalText;
+                    downloadBtn.disabled = false;
+                }).catch(err => {
+                    console.error('Error generating image:', err);
+                    downloadBtn.textContent = originalText;
+                    downloadBtn.disabled = false;
+                });
+            }, 500); // Wait 500ms to allow all animations to complete
+        });
+    </script>
 </body>
 </html>
