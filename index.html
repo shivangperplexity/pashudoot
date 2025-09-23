@@ -555,7 +555,7 @@
             try {
                 const detectFormData = new FormData();
                 detectFormData.append("file", file);
-                const detectResp = await fetch("https://sih20254-cattle-lens.hf.space/predict", { method: "POST", body: detectFormData });
+                const detectResp = await fetch("https://sih20254-cattle-lens.hf.space/cpredict", { method: "POST", body: detectFormData });
                 const detectData = await detectResp.json();
                 const isCattleDetected = detectData?.prediction === "LABEL_1";
 
